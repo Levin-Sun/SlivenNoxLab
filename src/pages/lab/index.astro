@@ -25,8 +25,10 @@ const links = labTools.filter((t) => t.group === '收藏跳转');
           <Reveal delay={i * 70}>
             <SpotlightCard href={t.href} tone="accent" class="lab-own-card">
               <div class="lab-own-inner">
-                <span class="lab-own-name">{t.name}</span>
-                <span class="lab-own-desc">{t.desc}</span>
+                <div class="lab-own-copy">
+                  <span class="lab-own-name">{t.name}</span>
+                  <span class="lab-own-desc">{t.desc}</span>
+                </div>
                 <span class="chip-live">进入</span>
               </div>
             </SpotlightCard>
@@ -68,7 +70,52 @@ const links = labTools.filter((t) => t.group === '收藏跳转');
     display: grid;
   }
 
-  .lab-own-inner,
+  /* 自研工具横幅卡：旗舰位通栏，横向布局 */
+  .own-grid {
+    grid-template-columns: 1fr;
+    margin-bottom: var(--space-14);
+  }
+
+  .own-grid :global(.spot-card) {
+    display: block;
+  }
+
+  .lab-own-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-6);
+    padding: var(--space-6) var(--space-6);
+  }
+
+  .lab-own-copy {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .lab-own-name {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .lab-own-desc {
+    font-size: 0.98rem;
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+  }
+
+  .chip-live {
+    margin-top: 0;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    padding: 6px 16px;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(34, 211, 238, 0.4);
+    color: var(--color-interactive);
+    white-space: nowrap;
+  }
+
   .lab-link-inner {
     display: grid;
     gap: var(--space-2);
@@ -76,44 +123,21 @@ const links = labTools.filter((t) => t.group === '收藏跳转');
     height: 100%;
   }
 
-  .lab-own-name {
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: var(--color-text);
-  }
-
-  .lab-own-desc {
-    font-size: 0.85rem;
-    color: var(--color-text-secondary);
-    line-height: 1.6;
-  }
-
-  .chip-live {
-    margin-top: var(--space-3);
-    justify-self: start;
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    padding: 4px 12px;
-    border-radius: var(--radius-pill);
-    border: 1px solid rgba(34, 211, 238, 0.4);
-    color: var(--color-interactive);
-  }
-
   .lab-link-name {
     font-weight: 550;
-    font-size: 0.95rem;
+    font-size: 1rem;
     color: var(--color-text);
   }
 
   .lab-link-desc {
-    font-size: 0.83rem;
+    font-size: 0.95rem;
     color: var(--color-text-secondary);
   }
 
   .lab-link-host {
     margin-top: var(--space-2);
     font-family: var(--font-mono);
-    font-size: 0.7rem;
+    font-size: 0.78rem;
     color: var(--color-text-tertiary);
   }
 

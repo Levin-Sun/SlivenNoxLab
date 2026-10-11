@@ -112,11 +112,16 @@ prose a,
   background: transparent;
 }
 
-/* 通用容器：内容主轴 1200px（三级断点基准） */
+/* 通用容器：内容主轴 1360px（大屏不留过宽的空边） */
 .container {
-  max-width: 1200px;
+  max-width: 1360px;
   margin-inline: auto;
-  padding-inline: clamp(16px, 4vw, 32px);
+  padding-inline: clamp(20px, 4vw, 40px);
+}
+
+/* 子页面主区域：给固定导航让出顶部呼吸（首页 Hero 自带内垫，不受此规则影响） */
+main[class] {
+  padding-top: clamp(112px, 13vh, 148px);
 }
 
 /* 首页区块统一节奏（Hero 之后的纵向呼吸） */

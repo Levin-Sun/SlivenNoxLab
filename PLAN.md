@@ -174,7 +174,7 @@ Astro API Routes / Node+Express、SQLite/PostgreSQL + Prisma、Decap CMS、JWT�
 
 **新增验收关卡：taste-skill 60 项交付前检查逐项过**（eyebrow 数量 ≤ 区块数/3、CTA 单行不换行、无重复意图 CTA、无装饰性状态点、无版本号页脚等）+ `npx impeccable detect` 反模式扫描 0 项主要发现。
 
-### 阶段三：核心业务模块（3-4 天）
+### 阶段三：核心业务模块（3-4 天）【已完成 2026-10-12】
 
 1. **技术笔记（新优先级，主写作面）** 【修订】：笔记列表 + 详情页 + **Pagefind 中文全文搜索** + Shiki 高亮；**网页内编辑发布**——接入 Decap CMS（/admin 编辑后台，保存即 commit GitHub 私有仓库 → CI 构建上线），从阶段五提前到本阶段，因为这是你的日常核心动线。笔记是碎片形态：无 TOC、标签筛选、正文可短
 2. 作品集：分类筛选列表 + 详情模板（封面/技术栈/源码/Demo 链接）
