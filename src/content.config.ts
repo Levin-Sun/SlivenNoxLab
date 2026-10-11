@@ -29,4 +29,15 @@ const projects = defineCollection({
   }),
 });
 
-export const collections = { notes, projects };
+// AI 热点解读：每日流水线自动写入（scripts/generate-hotreads.mjs）
+const hotreads = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/hotreads' }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string().optional(),
+    pubDate: z.coerce.date(),
+    tags: z.array(z.string()).default([]),
+  }),
+});
+
+export const collections = { notes, projects, hotreads };

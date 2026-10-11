@@ -1,0 +1,79 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { listHotReads, renderHotRead } from '../../../lib/data/hotreads';
+
+export async function getStaticPaths() {
+  const items = await listHotReads();
+  return items.map((item) => ({ params: { slug: item.id }, props: { item } }));
+}
+
+const { item } = Astro.props as { item: Awaited<ReturnType<typeof listHotReads>>[number] };
+const { Content } = await renderHotRead(item);
+const fmt = (d: Date) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+---
+
+<BaseLayout title={`${item.data.title} - SlivenNoxLab`} description={item.data.description ?? item.data.title}>
+  <main id="main" class="container container-narrow">
+    <a class="back-link content-link" href="/lab/hotreads/">← 全部热点解读</a>
+
+    <article>
+      <header class="hr-header">
+        <h1 class="hr-title">{item.data.title}</h1>
+        <div class="hr-meta">
+          <span class="hr-date">{fmt(item.data.pubDate)}</span>
+          {item.data.tags.map((t) => <span class="hr-tag">{t}</span>)}
+        </div>
+      </header>
+
+      <div class="prose">
+        <Content />
+      </div>
+    </article>
+  </main>
+</BaseLayout>
+
+<style>
+  .back-link {
+    display: inline-block;
+    margin: var(--space-10) 0 var(--space-8);
+    font-size: 0.9rem;
+  }
+
+  .hr-header {
+    display: grid;
+    gap: var(--space-4);
+    margin-bottom: var(--space-8);
+    padding-bottom: var(--space-6);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .hr-title {
+    font-size: clamp(1.7rem, 1.2rem + 1.8vw, 2.4rem);
+    line-height: 1.25;
+    color: var(--color-text);
+    text-wrap: balance;
+  }
+
+  .hr-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .hr-date {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--color-text-tertiary);
+    margin-right: var(--space-2);
+  }
+
+  .hr-tag {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-tertiary);
+  }
+</style>

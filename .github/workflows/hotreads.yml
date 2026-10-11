@@ -1,0 +1,50 @@
+# AI 热点解读：每日定时 抓 RSS → DeepSeek 摘要 → 提交内容 → 触发部署
+# 启用前在仓库 Secrets 配置：DEEPSEEK_API_KEY
+# 说明：提交到 main 会自动触发 deploy.yml，完成"生成即上线"
+
+name: Hot Reads
+
+on:
+  schedule:
+    - cron: '0 1 * * *' # 每天 UTC 01:00 = 北京时间 09:00
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 抓取 RSS 并生成摘要
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: node scripts/generate-hotreads.mjs
+
+      - name: 有新内容才提交
+        id: diff
+        run: |
+          git add src/content/hotreads/ || true
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 提交
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name "SlivenNoxLab Bot"
+          git config user.email "Levin-Sun@users.noreply.github.com"
+          git commit -m "hotreads: $(date -u +%F) 每日热点摘要"
+          git push

@@ -1,0 +1,115 @@
+---
+import { Image } from 'astro:assets';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Reveal from '../../components/ui/Reveal.astro';
+import { albums, getAlbum } from '../../lib/data/photos';
+
+export async function getStaticPaths() {
+  return albums.map((album) => ({ params: { album: album.slug }, props: { album } }));
+}
+
+const { album } = Astro.props as { album: ReturnType<typeof getAlbum> };
+---
+
+<BaseLayout title={`${album?.title ?? '相册'} - SlivenNoxLab 摄影`} description={album?.desc ?? `${album?.title} 相册，共 ${album?.photos.length} 张照片。`}>
+  <main id="main" class="container">
+    <a class="back-link content-link" href="/photos/">← 全部相册</a>
+
+    <header class="album-head">
+      <h1 class="album-title">{album?.title}</h1>
+      {album?.desc && <p class="album-desc">{album.desc}</p>}
+      <span class="album-count">{album?.photos.length} 张</span>
+    </header>
+
+    <div class="masonry">
+      {
+        album?.photos.map((photo, i) => (
+          <Reveal delay={Math.min(i * 30, 240)} class="m-item">
+            <figure class="m-item-inner">
+              <a href={photo.src.src} target="_blank" rel="noopener" aria-label={`查看原图 ${photo.filename}`}>
+                <Image
+                  src={photo.src}
+                  alt={`${album.title} ${i + 1}`}
+                  width={880}
+                  loading={i < 4 ? 'eager' : 'lazy'}
+                  decoding="async"
+                />
+              </a>
+            </figure>
+          </Reveal>
+        ))
+      }
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .back-link {
+    display: inline-block;
+    margin: var(--space-10) 0 var(--space-8);
+    font-size: 0.9rem;
+  }
+
+  .album-head {
+    display: grid;
+    gap: var(--space-2);
+    margin-bottom: var(--space-8);
+  }
+
+  .album-title {
+    font-size: clamp(1.7rem, 1.2rem + 1.8vw, 2.4rem);
+    color: var(--color-text);
+  }
+
+  .album-desc {
+    color: var(--color-text-secondary);
+  }
+
+  .album-count {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--color-text-tertiary);
+  }
+
+  /* 瀑布流：CSS 多列 */
+  .masonry {
+    columns: 3;
+    column-gap: var(--space-4);
+  }
+
+  .m-item {
+    break-inside: avoid;
+    margin: 0 0 var(--space-4);
+  }
+
+  .m-item-inner {
+    margin: 0;
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-raised);
+  }
+
+  .m-item-inner :global(img) {
+    width: 100%;
+    height: auto;
+    display: block;
+    transition: transform 0.6s var(--ease-out);
+  }
+
+  .m-item-inner:hover :global(img) {
+    transform: scale(1.01);
+  }
+
+  @media (max-width: 900px) {
+    .masonry {
+      columns: 2;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .masonry {
+      columns: 1;
+    }
+  }
+</style>

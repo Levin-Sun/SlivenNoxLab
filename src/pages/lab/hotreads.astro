@@ -1,10 +1,15 @@
 ---
+import { Image } from 'astro:assets';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Reveal from '../../components/ui/Reveal.astro';
 import SectionHead from '../../components/ui/SectionHead.astro';
+import { listHotReads } from '../../lib/data/hotreads';
+
+const hotreads = await listHotReads();
+const fmt = (d: Date) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
 ---
 
-<BaseLayout title="AI 热点解读 - SlivenNoxLab 工具台" description="每日定时抓取技术资讯，LLM 生成中文摘要。">
+<BaseLayout title="AI 热点解读 - SlivenNoxLab 工具台" description="每日定时抓取技术资讯，DeepSeek 生成中文摘要。">
   <main id="main" class="container container-narrow">
     <Reveal>
       <SectionHead title="AI 热点解读" />
@@ -17,7 +22,7 @@ import SectionHead from '../../components/ui/SectionHead.astro';
       </p>
     </Reveal>
 
-    <Reveal delay={120}>
+    <Reveal delay={100}>
       <div class="hot-pipeline">
         <div class="hot-step">
           <span class="hot-step-label">RSS 拉取</span>
@@ -34,11 +39,25 @@ import SectionHead from '../../components/ui/SectionHead.astro';
       </div>
     </Reveal>
 
-    <Reveal delay={160}>
-      <p class="hot-empty">
-        流水线随阶段四部署上线后，这里会出现每一天的热点摘要。
-      </p>
-    </Reveal>
+    {
+      hotreads.length > 0 ? (
+        <div class="hot-list">
+          {hotreads.map((item, i) => (
+            <Reveal delay={Math.min(i * 60, 240)}>
+              <a class="hot-item" href={`/lab/hotreads/${item.id}/`}>
+                <span class="hot-item-date">{fmt(item.data.pubDate)}</span>
+                <span class="hot-item-title">{item.data.title}</span>
+                {item.data.description && <span class="hot-item-desc">{item.data.description}</span>}
+              </a>
+            </Reveal>
+          ))}
+        </div>
+      ) : (
+        <Reveal delay={140}>
+          <p class="hot-empty">流水线随部署上线后，这里会出现每一天的热点摘要。</p>
+        </Reveal>
+      )
+    }
   </main>
 </BaseLayout>
 
@@ -55,7 +74,7 @@ import SectionHead from '../../components/ui/SectionHead.astro';
     gap: var(--space-4);
     border-left: 1px solid var(--color-border);
     padding-left: var(--space-5);
-    margin-bottom: var(--space-8);
+    margin-bottom: var(--space-10);
   }
 
   .hot-step {
@@ -71,8 +90,48 @@ import SectionHead from '../../components/ui/SectionHead.astro';
   }
 
   .hot-step-text {
-    font-size: 0.92rem;
+    font-size: 0.95rem;
     color: var(--color-text-secondary);
+  }
+
+  .hot-list {
+    display: grid;
+  }
+
+  .hot-item {
+    display: grid;
+    gap: var(--space-1);
+    padding: var(--space-5) var(--space-2);
+    text-decoration: none;
+    border-bottom: 1px solid var(--color-border);
+    transition: background var(--dur-fast) var(--ease-out);
+  }
+
+  .hot-item:hover {
+    background: rgba(168, 157, 220, 0.05);
+  }
+
+  .hot-item-date {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--color-text-tertiary);
+  }
+
+  .hot-item-title {
+    font-weight: 550;
+    font-size: 1.02rem;
+    color: var(--color-text);
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .hot-item:hover .hot-item-title {
+    color: var(--color-accent-soft);
+  }
+
+  .hot-item-desc {
+    font-size: 0.95rem;
+    color: var(--color-text-secondary);
+    line-height: 1.6;
   }
 
   .hot-empty {

@@ -4,10 +4,10 @@ import SectionHead from '../../components/ui/SectionHead.astro';
 import Reveal from '../../components/ui/Reveal.astro';
 import SpotlightCard from '../../components/ui/SpotlightCard.astro';
 import SectionHeadOverline from '../../components/ui/SectionHeadOverline.astro';
-import { labTools } from '../../lib/data/lab';
+import { ownTools, linkTools } from '../../lib/data/lab';
 
-const own = labTools.filter((t) => t.group === '自研工具');
-const links = labTools.filter((t) => t.group === '收藏跳转');
+const own = ownTools;
+const links = linkTools;
 ---
 
 <BaseLayout title="工具台 - SlivenNoxLab" description="自研效率工具与常用工具收藏。">
@@ -55,10 +55,18 @@ const links = labTools.filter((t) => t.group === '收藏跳转');
         ))
       }
     </div>
+
+    <Reveal delay={140}>
+      <p class="lab-note">更多收藏在<a class="content-link" href="/favorites/">收藏夹</a>里。</p>
+    </Reveal>
   </main>
 </BaseLayout>
 
 <style>
+  .lab-note {
+    font-size: 0.9rem;
+    color: var(--color-text-tertiary);
+  }
   .lab-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);

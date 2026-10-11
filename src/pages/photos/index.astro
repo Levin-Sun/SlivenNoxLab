@@ -1,10 +1,204 @@
 ---
-import WipPage from '../../components/ui/WipPage.astro';
+import { Image } from 'astro:assets';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Reveal from '../../components/ui/Reveal.astro';
+import SectionHead from '../../components/ui/SectionHead.astro';
+import { albums } from '../../lib/data/photos';
+
+const placeholderSeeds = Array.from({ length: 8 }, (_, i) => `nox-photo-${i + 1}`);
 ---
 
-<WipPage
-  title="摄影"
-  description="相册与摄影作品瀑布流。"
-  heading="摄影"
-  note="摄影集模块在阶段四上线：Astro Image 瀑布流 + 相册列表，照片素材已就绪。"
-/>
+<BaseLayout title="摄影 - SlivenNoxLab" description="相册与摄影作品。">
+  <main id="main" class="container">
+    <Reveal>
+      <SectionHead title="摄影" />
+    </Reveal>
+
+    {
+      albums.length > 0 ? (
+        <div class="album-grid">
+          {albums.map((album, i) => (
+            <Reveal delay={i * 70}>
+              <a class="album-card" href={`/photos/${album.slug}/`}>
+                <div class="album-cover">
+                  {album.cover && (
+                    <Image
+                      src={album.cover.src}
+                      alt={album.title}
+                      width={900}
+                      height={640}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  )}
+                </div>
+                <div class="album-info">
+                  <span class="album-title">{album.title}</span>
+                  {album.desc && <span class="album-desc">{album.desc}</span>}
+                  <span class="album-count">{album.photos.length} 张</span>
+                </div>
+              </a>
+            </Reveal>
+          ))}
+        </div>
+      ) : (
+        <div class="photos-empty">
+          <Reveal delay={60}>
+            <p class="empty-guide">
+              相册机制已就绪：把照片放进 <code class="path-code">src/assets/photos/相册名/</code> 文件夹，
+              重新构建即自动成册（Astro Image 构建时优化 WebP/AVIF）。
+              相册中文名在 <code class="path-code">src/config/photos.ts</code> 登记。
+            </p>
+          </Reveal>
+          <Reveal delay={120}>
+            <div class="masonry placeholder">
+              {placeholderSeeds.map((seed, i) => (
+                <figure class={`ph-item ph-${(i % 3) + 1}`}>
+                  <img
+                    src={`https://picsum.photos/seed/${seed}/800/${i % 3 === 0 ? 1100 : i % 3 === 1 ? 800 : 950}`}
+                    alt="占位图，展示瀑布流布局"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </figure>
+              ))}
+            </div>
+          </Reveal>
+        </div>
+      )
+    }
+  </main>
+</BaseLayout>
+
+<style>
+  .album-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-5);
+  }
+
+  .album-grid > :global(.reveal) {
+    display: grid;
+  }
+
+  .album-card {
+    display: block;
+    text-decoration: none;
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-raised);
+    transition: border-color var(--dur-fast) var(--ease-out);
+  }
+
+  .album-card:hover {
+    border-color: var(--color-border-strong);
+  }
+
+  .album-cover :global(img) {
+    width: 100%;
+    aspect-ratio: 3 / 2;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.7s var(--ease-out);
+  }
+
+  .album-card:hover .album-cover :global(img) {
+    transform: scale(1.02);
+  }
+
+  .album-info {
+    display: grid;
+    gap: var(--space-1);
+    padding: var(--space-4) var(--space-5);
+  }
+
+  .album-title {
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: var(--color-text);
+  }
+
+  .album-desc {
+    font-size: 0.95rem;
+    color: var(--color-text-secondary);
+  }
+
+  .album-count {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--color-text-tertiary);
+  }
+
+  /* 瀑布流：CSS 多列，占位演示与真实相册共用 */
+  .masonry {
+    columns: 3;
+    column-gap: var(--space-4);
+  }
+
+  .masonry.placeholder .ph-item {
+    margin: 0 0 var(--space-4);
+    break-inside: avoid;
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+  }
+
+  .masonry.placeholder .ph-1 img {
+    aspect-ratio: 8 / 11;
+  }
+
+  .masonry.placeholder .ph-2 img {
+    aspect-ratio: 1 / 1;
+  }
+
+  .masonry.placeholder .ph-3 img {
+    aspect-ratio: 8 / 9.5;
+  }
+
+  .masonry img {
+    width: 100%;
+    display: block;
+  }
+
+  .empty-guide {
+    max-width: 62ch;
+    color: var(--color-text-secondary);
+    line-height: 1.8;
+    margin-bottom: var(--space-8);
+  }
+
+  .path-code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: rgba(168, 157, 220, 0.12);
+    color: var(--color-accent-soft);
+    white-space: nowrap;
+  }
+
+  .photos-empty {
+    /* 占位态整体 */
+  }
+
+  @media (max-width: 900px) {
+    .album-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .masonry {
+      columns: 2;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .album-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .masonry {
+      columns: 1;
+    }
+  }
+</style>

@@ -80,6 +80,14 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
       { threshold: 0.12, rootMargin: '0px 0px -48px 0px' },
     );
     revealEls.forEach((el) => io.observe(el));
+
+    // 保险：脚本延迟执行的场合（弱网/节流），首屏内容不因入场动画缺席而空白
+    setTimeout(() => {
+      revealEls.forEach((el) => {
+        if (el.classList.contains('is-in')) return;
+        if (el.getBoundingClientRect().top < innerHeight) el.classList.add('is-in');
+      });
+    }, 900);
   }
 
   // 指针聚光：指针位置写入卡片 CSS 变量（ReactBits Spotlight Card 移植）
