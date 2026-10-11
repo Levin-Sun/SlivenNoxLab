@@ -252,7 +252,8 @@ void main(){
 
       const paint = (t: number) => {
         gl.uniform2f(uRes, canvas.width, canvas.height);
-        gl.uniform1f(uTime, t);
+        // 着色器内时间常数按秒设计（逆向原公式），rAF 时间戳是毫秒，归一化
+        gl.uniform1f(uTime, t / 1000);
         gl.uniform2f(uMouse, pointer.x, pointer.y);
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       };
