@@ -1,0 +1,196 @@
+---
+// 一键转存到笔记（ReactBits 无对应，自研微组件）：
+// 选分类 + 写解读 → 生成完整 Markdown 草稿进剪贴板 → 打开后台新建页，粘贴即存。
+// 静态架构下"发布"由 Decap 的保存动作完成（本地写文件 / 线上 commit + CI）。
+import { listNoteCategories } from '../../lib/data/notes';
+
+interface Props {
+  title: string;
+  sourceUrl: string;
+  excerpt?: string;
+}
+const { title, sourceUrl, excerpt } = Astro.props;
+const categories = await listNoteCategories();
+---
+
+<div class="save-note" data-save-note data-title={title} data-url={sourceUrl} data-excerpt={excerpt ?? ''}>
+  <div class="sn-head">
+    <span class="sn-title-label">转存到笔记</span>
+    <span class="sn-hint">草稿进剪贴板，后台粘贴后发布</span>
+  </div>
+
+  <div class="sn-fields">
+    <label class="sn-field">
+      <span class="sn-field-label">笔记标题</span>
+      <input class="sn-input" name="sn-title" type="text" value={`转存：${title}`} />
+    </label>
+    <label class="sn-field">
+      <span class="sn-field-label">分类</span>
+      <select class="sn-input" name="sn-cat">
+        {
+          categories.map((c, i) => (
+            <option value={c.key} selected={i === 0}>
+              {c.label}
+            </option>
+          ))
+        }
+      </select>
+    </label>
+    <label class="sn-field sn-field-wide">
+      <span class="sn-field-label">我的解读</span>
+      <textarea class="sn-input" name="sn-note" rows="3" placeholder="为什么值得留？写下你的看法…" />
+    </label>
+  </div>
+
+  <button class="btn btn-primary sn-go" type="button">复制草稿并打开后台</button>
+  <span class="sn-toast" role="status" aria-live="polite"></span>
+</div>
+
+<style>
+  .save-note {
+    margin-top: var(--space-10);
+    padding: var(--space-5) var(--space-6);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-bg-raised);
+  }
+
+  .sn-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+  }
+
+  .sn-title-label {
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .sn-hint {
+    font-size: 0.8rem;
+    color: var(--color-text-tertiary);
+  }
+
+  .sn-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+  }
+
+  .sn-field {
+    display: grid;
+    gap: var(--space-1);
+  }
+
+  .sn-field-wide {
+    grid-column: 1 / -1;
+  }
+
+  .sn-field-label {
+    font-size: 0.82rem;
+    color: var(--color-text-tertiary);
+  }
+
+  .sn-input {
+    background: var(--color-bg-inset);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-input);
+    color: var(--color-text);
+    padding: 9px 12px;
+    font: inherit;
+    font-size: 0.92rem;
+  }
+
+  .sn-input:focus {
+    outline: 2px solid var(--color-interactive);
+    outline-offset: 1px;
+    border-color: transparent;
+  }
+
+  textarea.sn-input {
+    resize: vertical;
+    min-height: 70px;
+  }
+
+  .sn-go {
+    margin-top: var(--space-4);
+  }
+
+  .sn-toast {
+    margin-left: var(--space-4);
+    font-size: 0.85rem;
+    color: var(--color-interactive);
+    opacity: 0;
+    transition: opacity var(--dur-fast) var(--ease-out);
+  }
+
+  .sn-toast.is-visible {
+    opacity: 1;
+  }
+
+  @media (max-width: 640px) {
+    .sn-fields {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-save-note]').forEach((panel) => {
+    const btn = panel.querySelector<HTMLButtonElement>('.sn-go');
+    const toast = panel.querySelector<HTMLElement>('.sn-toast');
+    btn?.addEventListener('click', async () => {
+      const titleEl = panel.querySelector<HTMLInputElement>('input[name="sn-title"]');
+      const catEl = panel.querySelector<HTMLSelectElement>('select[name="sn-cat"]');
+      const noteEl = panel.querySelector<HTMLTextAreaElement>('textarea[name="sn-note"]');
+
+      const userTitle = titleEl?.value.trim() || panel.dataset.title || '未命名转存';
+      const category = catEl?.value ?? '';
+      const myNote = noteEl?.value.trim() || '（待补充）';
+      const sourceTitle = panel.dataset.title ?? '';
+      const sourceUrl = panel.dataset.url ?? '';
+      const excerpt = panel.dataset.excerpt ?? '';
+      const today = new Date().toISOString().slice(0, 10);
+
+      const quote = (s: string) => s.split('\n').map((l) => `> ${l}`).join('\n');
+
+      const md = [
+        '---',
+        `title: ${userTitle}`,
+        `description: ${myNote.slice(0, 60)}`,
+        `pubDate: ${today}`,
+        'tags: [热点, 转存]',
+        category ? `category: ${category}` : null,
+        '---',
+        '',
+        `> 转存自 [${sourceTitle}](${sourceUrl})`,
+        '',
+        `**我的解读**：${myNote}`,
+        '',
+        '## 原文摘要',
+        '',
+        quote(excerpt || sourceTitle),
+        '',
+      ]
+        .filter((line) => line !== null)
+        .join('\n');
+
+      try {
+        await navigator.clipboard.writeText(md);
+        if (toast) {
+          toast.textContent = '草稿已复制，粘贴到正文后点保存';
+          toast.classList.add('is-visible');
+          setTimeout(() => toast.classList.remove('is-visible'), 4000);
+        }
+        window.open('/admin/#/collections/notes/new', '_blank');
+      } catch {
+        if (toast) {
+          toast.textContent = '剪贴板不可用，请手动复制';
+          toast.classList.add('is-visible');
+        }
+      }
+    });
+  });
+</script>

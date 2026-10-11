@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
+import SaveToNote from '../../../components/ui/SaveToNote.astro';
 import { listHotReads, renderHotRead } from '../../../lib/data/hotreads';
 
 export async function getStaticPaths() {
@@ -28,6 +29,12 @@ const fmt = (d: Date) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart
       <div class="prose">
         <Content />
       </div>
+
+      <SaveToNote
+        title={item.data.title}
+        sourceUrl={`/lab/hotreads/${item.id}/`}
+        excerpt={item.data.description ?? ''}
+      />
     </article>
   </main>
 </BaseLayout>

@@ -25,6 +25,45 @@ public_path: /uploads
 locale: zh_Hans
 
 collections:
+  - name: note-categories
+    label: 笔记分类
+    files:
+      - name: note-categories-file
+        label: 分类列表
+        file: src/data/note-categories.json
+        fields:
+          - name: categories
+            label: 分类
+            widget: list
+            fields:
+              - { name: key, label: 标识（英文小写）, widget: string }
+              - { name: label, label: 分类名, widget: string }
+              - { name: order, label: 排序（小的在前）, widget: number, required: false }
+
+  - name: favorites
+    label: 收藏夹
+    files:
+      - name: favorites-file
+        label: 收藏数据
+        file: src/data/favorites.json
+        fields:
+          - name: categories
+            label: 分类
+            widget: list
+            fields:
+              - { name: key, label: 标识（英文小写）, widget: string }
+              - { name: label, label: 分类名, widget: string }
+              - name: items
+                label: 条目
+                widget: list
+                fields:
+                  - { name: name, label: 名称, widget: string }
+                  - { name: href, label: 链接, widget: string }
+                  - { name: desc, label: 一句话说明, widget: string, required: false }
+                  - { name: host, label: 域名（不传图标时用于自动抓取 favicon）, widget: string, required: false }
+                  - { name: icon, label: 自定义图标, widget: image, required: false }
+                  - { name: cover, label: 封面图（影视海报等）, widget: image, required: false }
+
   - name: albums
     label: 相册
     label_singular: 相册
@@ -56,6 +95,7 @@ collections:
       - { name: title, label: 标题, widget: string }
       - { name: description, label: 摘要, widget: text, required: false }
       - { name: pubDate, label: 发布日期, widget: datetime, format: 'YYYY-MM-DD' }
+      - { name: category, label: 分类（可自由填写，如 技术/日常/感悟）, widget: string, required: false }
       - { name: tags, label: 标签, widget: list, required: false, default: [] }
       - name: stage
         label: 成熟度

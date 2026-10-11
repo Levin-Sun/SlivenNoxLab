@@ -1,7 +1,8 @@
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
 
-// 技术笔记：碎片形态，无 TOC；stage 字段为远期"沉淀为知识库"留数据基础
+// 技术笔记：碎片形态，无 TOC；category 对应"笔记分类"集合（可自由扩展）；
+// stage 字段为远期"沉淀为知识库"留数据基础
 const notes = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/content/notes' }),
   schema: z.object({
@@ -9,6 +10,7 @@ const notes = defineCollection({
     description: z.string().optional(),
     pubDate: z.coerce.date(),
     tags: z.array(z.string()).default([]),
+    category: z.string().optional(),
     stage: z.enum(['seedling', 'evergreen']).default('seedling'),
   }),
 });

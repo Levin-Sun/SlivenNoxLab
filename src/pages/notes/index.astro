@@ -3,9 +3,10 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import SectionHead from '../../components/ui/SectionHead.astro';
 import Reveal from '../../components/ui/Reveal.astro';
 import Search from 'astro-pagefind/components/Search.astro';
-import { listNotes } from '../../lib/data/notes';
+import { listNotes, listNoteCategories } from '../../lib/data/notes';
 
 const notes = await listNotes();
+const categories = await listNoteCategories();
 const fmt = (d: Date) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
 ---
 
@@ -22,7 +23,24 @@ const fmt = (d: Date) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart
       </p>
     </Reveal>
 
-    <Reveal delay={100}>
+    {
+      categories.length > 1 && (
+        <Reveal delay={90}>
+          <div class="cat-tabs" role="tablist" aria-label="笔记分类">
+            <button class={`cat-tab is-active ${''}`} type="button" role="tab" aria-selected="true" data-cat="all">
+              全部
+            </button>
+            {categories.map((c) => (
+              <button class="cat-tab" type="button" role="tab" aria-selected="false" data-cat={c.key}>
+                {c.label}
+              </button>
+            ))}
+          </div>
+        </Reveal>
+      )
+    }
+
+    <Reveal delay={110}>
       <div class="notes-search">
         <Search id="notes-search" className="pagefind-ui" uiOptions={{ showImages: false }} />
       </div>
@@ -32,7 +50,7 @@ const fmt = (d: Date) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart
       <ul class="note-list" role="list">
         {
           notes.map((note) => (
-            <li class="note-row">
+            <li class="note-row" data-cat={note.data.category ?? 'uncategorized'}>
               <a class="note-link" href={`/notes/${note.id}/`}>
                 <span class="note-date">
                   {fmt(note.data.pubDate)}
@@ -40,13 +58,12 @@ const fmt = (d: Date) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart
                 <span class="note-body">
                   <span class="note-title">{note.data.title}</span>
                   {note.data.description && <span class="note-desc">{note.data.description}</span>}
-                  {note.data.tags.length > 0 && (
-                    <span class="note-tags">
-                      {note.data.tags.map((t) => (
-                        <span class="tag-mini">{t}</span>
-                      ))}
-                    </span>
-                  )}
+                  <span class="note-tags">
+                    {note.data.category && <span class="tag-mini tag-cat">{note.data.category}</span>}
+                    {note.data.tags.map((t) => (
+                      <span class="tag-mini">{t}</span>
+                    ))}
+                  </span>
                 </span>
               </a>
               <a
@@ -71,12 +88,67 @@ const fmt = (d: Date) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart
   </main>
 </BaseLayout>
 
+<script>
+  // 分类筛选（纯客户端）
+  const tabs = document.querySelectorAll<HTMLButtonElement>('.cat-tab');
+  const rows = document.querySelectorAll<HTMLElement>('.note-row');
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      tabs.forEach((t) => {
+        const active = t === tab;
+        t.classList.toggle('is-active', active);
+        t.setAttribute('aria-selected', String(active));
+      });
+      const key = tab.dataset.cat;
+      rows.forEach((row) => {
+        const show = key === 'all' || row.dataset.cat === key;
+        row.style.display = show ? '' : 'none';
+      });
+    });
+  });
+</script>
+
 <style>
   .notes-intro {
     max-width: 56ch;
     color: var(--color-text-secondary);
     line-height: 1.7;
+    margin-bottom: var(--space-5);
+  }
+
+  .cat-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
     margin-bottom: var(--space-6);
+  }
+
+  .cat-tab {
+    font-size: 0.9rem;
+    padding: 8px 17px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    transition:
+      color var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out),
+      background var(--dur-fast) var(--ease-out);
+  }
+
+  .cat-tab:hover {
+    color: var(--color-text);
+    border-color: var(--color-border-strong);
+  }
+
+  .cat-tab.is-active {
+    color: #fff;
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+
+  .tag-cat {
+    color: var(--color-interactive);
+    border-color: rgba(34, 211, 238, 0.35);
   }
 
   .notes-search {
@@ -88,10 +160,6 @@ const fmt = (d: Date) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart
     list-style: none;
     padding: 0;
     display: grid;
-  }
-
-  .note-row + .note-row {
-    border-top: 1px solid var(--color-border);
   }
 
   .note-row {

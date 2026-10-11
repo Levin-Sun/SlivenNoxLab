@@ -1,0 +1,7 @@
+{
+  "categories": [
+    { "key": "tech", "label": "技术", "order": 1 },
+    { "key": "daily", "label": "日常", "order": 2 },
+    { "key": "thought", "label": "感悟", "order": 3 }
+  ]
+}
