@@ -364,83 +364,100 @@ const noteLines = ['Pagefind 中文搜索接入', 'Content Collections 类型校
 </style>
 
 <script>
+  /* ClientRouter 下模块只执行一次；astro:page-load 时清理旧实例并对新页重新初始化 */
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const cleanups: Array<() => void> = [];
 
-  /* 笔记打字机：循环敲出笔记标题，reduced-motion 直接显示第一行 */
-  document.querySelectorAll<HTMLElement>('[data-typing]').forEach((el) => {
-    let lines: string[] = [];
-    try {
-      lines = JSON.parse(el.dataset.lines ?? '[]');
-    } catch {
-      lines = [];
-    }
-    if (!lines.length) return;
-    if (reduced.matches) {
-      el.textContent = lines[0];
-      return;
-    }
-    let li = 0;
-    let ci = 0;
-    let deleting = false;
-    const step = () => {
-      const line = lines[li];
-      ci += deleting ? -1 : 1;
-      el.textContent = line.slice(0, ci);
-      let wait = deleting ? 26 : 64;
-      if (!deleting && ci >= line.length) {
-        wait = 2200;
-        deleting = true;
-      } else if (deleting && ci <= 0) {
-        deleting = false;
-        li = (li + 1) % lines.length;
-        wait = 500;
+  const initPage = () => {
+    cleanups.splice(0).forEach((fn) => fn());
+
+    /* 笔记打字机：循环敲出笔记标题，reduced-motion 直接显示第一行 */
+    document.querySelectorAll<HTMLElement>('[data-typing]').forEach((el) => {
+      let lines: string[] = [];
+      try {
+        lines = JSON.parse(el.dataset.lines ?? '[]');
+      } catch {
+        lines = [];
       }
-      setTimeout(step, wait);
-    };
-    step();
-  });
-
-  /* 工具台像素闪烁屏：低频随机点亮紫/青像素格，reduced-motion 静态一帧 */
-  document.querySelectorAll<HTMLCanvasElement>('[data-pixels]').forEach((canvas) => {
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const COLS = 20;
-    const ROWS = 9;
-    const colors = ['rgba(124, 58, 237, 0.55)', 'rgba(168, 85, 247, 0.4)', 'rgba(34, 211, 238, 0.28)'];
-    const lit: boolean[][] = Array.from({ length: COLS }, () => Array(ROWS).fill(false));
-    const pick = () => Math.floor(Math.random() * COLS);
-
-    const paint = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const cw = canvas.width / COLS;
-      const ch = canvas.height / ROWS;
-      for (let x = 0; x < COLS; x++)
-        for (let y = 0; y < ROWS; y++) {
-          if (!lit[x][y]) continue;
-          ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
-          ctx.fillRect(x * cw + 1, y * ch + 1, cw - 2, ch - 2);
+      if (!lines.length) return;
+      if (reduced.matches) {
+        el.textContent = lines[0];
+        return;
+      }
+      let li = 0;
+      let ci = 0;
+      let deleting = false;
+      let timer = 0;
+      let stopped = false;
+      const step = () => {
+        if (stopped) return;
+        const line = lines[li];
+        ci += deleting ? -1 : 1;
+        el.textContent = line.slice(0, ci);
+        let wait = deleting ? 26 : 64;
+        if (!deleting && ci >= line.length) {
+          wait = 2200;
+          deleting = true;
+        } else if (deleting && ci <= 0) {
+          deleting = false;
+          li = (li + 1) % lines.length;
+          wait = 500;
         }
-    };
+        timer = window.setTimeout(step, wait);
+      };
+      step();
+      cleanups.push(() => {
+        stopped = true;
+        clearTimeout(timer);
+      });
+    });
 
-    if (reduced.matches) {
-      for (let i = 0; i < 14; i++) lit[pick()][Math.floor(Math.random() * ROWS)] = true;
-      paint();
-      return;
-    }
+    /* 工具台像素闪烁屏：低频随机点亮紫/青像素格，reduced-motion 静态一帧 */
+    document.querySelectorAll<HTMLCanvasElement>('[data-pixels]').forEach((canvas) => {
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      const COLS = 20;
+      const ROWS = 9;
+      const colors = ['rgba(124, 58, 237, 0.55)', 'rgba(168, 85, 247, 0.4)', 'rgba(34, 211, 238, 0.28)'];
+      const lit: boolean[][] = Array.from({ length: COLS }, () => Array(ROWS).fill(false));
+      const pick = () => Math.floor(Math.random() * COLS);
 
-    let last = 0;
-    const tick = (t: number) => {
-      requestAnimationFrame(tick);
-      if (t - last < 240) return; // 低频：约 4 次/秒的节奏感
-      last = t;
-      // 随机翻转若干格，保持约 1/4 亮度
-      for (let i = 0; i < 3; i++) {
-        const x = pick();
-        const y = Math.floor(Math.random() * ROWS);
-        lit[x][y] = Math.random() > 0.4;
+      const paint = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const cw = canvas.width / COLS;
+        const ch = canvas.height / ROWS;
+        for (let x = 0; x < COLS; x++)
+          for (let y = 0; y < ROWS; y++) {
+            if (!lit[x][y]) continue;
+            ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+            ctx.fillRect(x * cw + 1, y * ch + 1, cw - 2, ch - 2);
+          }
+      };
+
+      if (reduced.matches) {
+        for (let i = 0; i < 14; i++) lit[pick()][Math.floor(Math.random() * ROWS)] = true;
+        paint();
+        return;
       }
-      paint();
-    };
-    requestAnimationFrame(tick);
-  });
+
+      let last = 0;
+      let raf = 0;
+      const tick = (t: number) => {
+        raf = requestAnimationFrame(tick);
+        if (t - last < 240) return; // 低频：约 4 次/秒的节奏感
+        last = t;
+        for (let i = 0; i < 3; i++) {
+          const x = pick();
+          const y = Math.floor(Math.random() * ROWS);
+          lit[x][y] = Math.random() > 0.4;
+        }
+        paint();
+      };
+      raf = requestAnimationFrame(tick);
+      cleanups.push(() => cancelAnimationFrame(raf));
+    });
+  };
+
+  document.addEventListener('astro:page-load', initPage);
+  initPage();
 </script>

@@ -100,22 +100,11 @@ import { musicTracks } from '../../lib/data/music';
 </BaseLayout>
 
 <script>
-  const api = (window as unknown as Record<string, unknown>).NoxAudio as NoxAudio;
-  const player = document.querySelector<HTMLElement>('[data-player]');
-  const ring = player?.querySelector<HTMLCanvasElement>('[data-ring]');
-  const rctx = ring?.getContext('2d');
-  const disc = player?.querySelector<HTMLElement>('[data-disc]');
-  const titleEl = player?.querySelector<HTMLElement>('[data-title]');
-  const artistEl = player?.querySelector<HTMLElement>('[data-artist]');
-  const curEl = player?.querySelector<HTMLElement>('[data-cur]');
-  const durEl = player?.querySelector<HTMLElement>('[data-dur]');
-  const seekEl = player?.querySelector<HTMLInputElement>('[data-seek]');
-  const loopLabel = player?.querySelector<HTMLElement>('[data-loop-label]');
-  const volLabel = player?.querySelector<HTMLElement>('[data-vol-label]');
-  const mainBtn = player?.querySelector<HTMLButtonElement>('[data-act="toggle"]');
-  const drops = document.querySelectorAll<HTMLButtonElement>('.drop');
-
+  /* ClientRouter 下模块只执行一次；astro:page-load 时清理旧实例并对新页重新初始化。
+     音频引擎（window.NoxAudio）跨页持久，播放不中断。 */
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  let cleanupFns: Array<() => void> = [];
+  let syncRef: (() => void) | null = null;
 
   const fmt = (t: number) => {
     if (!isFinite(t)) return '00:00';
@@ -124,106 +113,171 @@ import { musicTracks } from '../../lib/data/music';
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
-  // 播放状态类：碟片旋转 / 主键图标 / 曲目卡当前态
-  const syncPlaying = () => {
-    player?.classList.toggle('is-playing', api.playing);
-    mainBtn?.classList.toggle('is-playing', api.playing);
-    drops.forEach((d) => d.classList.toggle('is-current', Number(d.dataset.index) === api.index));
-  };
+  const initPage = () => {
+    cleanupFns.splice(0).forEach((fn) => fn());
 
-  drops.forEach((d) => d.addEventListener('click', () => api.load(Number(d.dataset.index))));
-  player?.querySelector('[data-act="toggle"]')?.addEventListener('click', () => api.toggle());
-  player?.querySelector('[data-act="next"]')?.addEventListener('click', () => api.next());
-  player?.querySelector('[data-act="prev"]')?.addEventListener('click', () => api.prev());
-  player?.querySelector('[data-loop]')?.addEventListener('click', () => {
-    api.audio.loop = !api.audio.loop;
-    if (loopLabel) loopLabel.textContent = api.audio.loop ? '单曲循环' : '列表循环';
-  });
+    const api = (window as unknown as Record<string, unknown>).NoxAudio as NoxAudio;
+    const player = document.querySelector<HTMLElement>('[data-player]');
+    const ring = player?.querySelector<HTMLCanvasElement>('[data-ring]');
+    const rctx = ring?.getContext('2d');
+    const titleEl = player?.querySelector<HTMLElement>('[data-title]');
+    const artistEl = player?.querySelector<HTMLElement>('[data-artist]');
+    const curEl = player?.querySelector<HTMLElement>('[data-cur]');
+    const durEl = player?.querySelector<HTMLElement>('[data-dur]');
+    const seekEl = player?.querySelector<HTMLInputElement>('[data-seek]');
+    const loopLabel = player?.querySelector<HTMLElement>('[data-loop-label]');
+    const volLabel = player?.querySelector<HTMLElement>('[data-vol-label]');
+    const mainBtn = player?.querySelector<HTMLButtonElement>('[data-act="toggle"]');
+    const glowEl = player?.querySelector<HTMLElement>('.glow');
+    const labelEl = player?.querySelector<HTMLElement>('.disc-label');
+    const drops = document.querySelectorAll<HTMLButtonElement>('.drop');
 
-  const sync = () => {
-    const i = api.index;
-    const tr = i >= 0 ? api.tracks[i] : null;
-    if (titleEl) titleEl.textContent = tr?.title ?? '未在播放';
-    if (artistEl) artistEl.textContent = tr?.artist ?? '程序合成 · 示例曲目';
-    syncPlaying();
-    if (curEl) curEl.textContent = fmt(api.audio.currentTime);
-    if (durEl) durEl.textContent = fmt(api.audio.duration);
-    if (seekEl && !seekEl.matches(':active')) {
-      seekEl.value = api.audio.duration ? String((api.audio.currentTime / api.audio.duration) * 100) : '0';
-    }
-    if (volLabel) volLabel.textContent = `${Math.round(api.audio.volume * 100)}%`;
-  };
-  window.addEventListener('noxaudio:state', sync);
-  sync();
-
-  // 音量 chip：点击循环 0 → 0.4 → 0.8 → 1
-  player?.querySelector('[data-vol-chip]')?.addEventListener('click', () => {
-    const levels = [0, 0.4, 0.8, 1];
-    const cur = levels.indexOf(api.audio.volume);
-    api.setVolume(levels[(cur + 1) % levels.length]);
-  });
-
-  /* 环形频谱：碟片外圈的径向频谱条（超越原版的自加细节） */
-  if (ring && rctx) {
-    let size = 520;
-    const resize = () => {
-      const rect = ring.getBoundingClientRect();
-      size = Math.max(2, Math.round((rect.width || 520)));
-      ring.width = size;
-      ring.height = size;
+    const syncPlaying = () => {
+      player?.classList.toggle('is-playing', api.playing);
+      mainBtn?.classList.toggle('is-playing', api.playing);
+      drops.forEach((d) => d.classList.toggle('is-current', Number(d.dataset.index) === api.index));
     };
-    resize();
-    let resizeTimer = 0;
-    window.addEventListener('resize', () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = window.setTimeout(resize, 150);
+
+    const sync = () => {
+      const i = api.index;
+      const tr = i >= 0 ? api.tracks[i] : null;
+      if (titleEl) titleEl.textContent = tr?.title ?? '未在播放';
+      if (artistEl) artistEl.textContent = tr?.artist ?? '程序合成 · 示例曲目';
+      syncPlaying();
+      if (curEl) curEl.textContent = fmt(api.audio.currentTime);
+      if (durEl) durEl.textContent = fmt(api.audio.duration);
+      if (seekEl && !seekEl.matches(':active')) {
+        seekEl.value = api.audio.duration ? String((api.audio.currentTime / api.audio.duration) * 100) : '0';
+      }
+      if (volLabel) volLabel.textContent = `${Math.round(api.audio.volume * 100)}%`;
+    };
+
+    syncRef = sync;
+
+    drops.forEach((d) =>
+      d.addEventListener('click', () => api.load(Number(d.dataset.index))),
+    );
+    player?.querySelector('[data-act="toggle"]')?.addEventListener('click', () => api.toggle());
+    player?.querySelector('[data-act="next"]')?.addEventListener('click', () => api.next());
+    player?.querySelector('[data-act="prev"]')?.addEventListener('click', () => api.prev());
+    player?.querySelector('[data-loop]')?.addEventListener('click', () => {
+      api.audio.loop = !api.audio.loop;
+      if (loopLabel) loopLabel.textContent = api.audio.loop ? '单曲循环' : '列表循环';
+    });
+    player?.querySelector('[data-vol-chip]')?.addEventListener('click', () => {
+      const levels = [0, 0.4, 0.8, 1];
+      const cur = levels.indexOf(api.audio.volume);
+      api.setVolume(levels[(cur + 1) % levels.length]);
     });
 
-    let last = 0;
-    const draw = (t: number) => {
-      requestAnimationFrame(draw);
-      if (t - last < 33) return;
-      last = t;
-      const w = ring.width;
-      const c = w / 2;
-      rctx.clearRect(0, 0, w, w);
-      const freq = api.freq();
-      const base = w * 0.295; // 碟片半径之外一点点
-      const BARS = 56;
-      for (let i = 0; i < BARS; i++) {
-        // 对数映射：合成曲低频重，让中高频段也有表现
-        const bin = Math.floor(Math.pow(i / BARS, 1.6) * 90);
-        const v = freq ? freq[bin] / 255 : 0.04 + 0.03 * Math.sin(t / 700 + i * 0.6);
-        const ang = (i / BARS) * Math.PI * 2 - Math.PI / 2;
-        const len = w * 0.015 + v * w * 0.135;
-        const x1 = c + Math.cos(ang) * base;
-        const y1 = c + Math.sin(ang) * base;
-        const x2 = c + Math.cos(ang) * (base + len);
-        const y2 = c + Math.sin(ang) * (base + len);
-        const mix = i / BARS;
-        rctx.strokeStyle = `rgba(${Math.round(34 + mix * 90)}, ${Math.round(211 - mix * 126)}, ${Math.round(238 - mix * 1)}, ${0.35 + v * 0.6})`;
-        rctx.lineWidth = Math.max(2, w * 0.006);
-        rctx.lineCap = 'round';
+    /* 环形频谱：碟片外圈的径向频谱条（镜像对称 + 峰值保持帽 + 节拍呼吸） */
+    if (ring && rctx) {
+      const resize = () => {
+        const w = Math.max(2, Math.round(ring.getBoundingClientRect().width || 520));
+        ring.width = w;
+        ring.height = w;
+      };
+      resize();
+      let resizeTimer = 0;
+      const onResize = () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(resize, 150);
+      };
+      window.addEventListener('resize', onResize);
+      cleanupFns.push(() => window.removeEventListener('resize', onResize));
+
+      const BARS = 64;
+      const HALF = BARS / 2;
+      const peaks = new Float32Array(BARS);
+
+      let last = 0;
+      let raf = 0;
+      const draw = (t: number) => {
+        raf = requestAnimationFrame(draw);
+        if (t - last < 33) return;
+        last = t;
+        const w = ring.width;
+        const c = w / 2;
+        rctx.clearRect(0, 0, w, w);
+        const freq = api.freq();
+        const base = w * 0.3; // 碟片半径之外一点点
+
+        // 低音能量：驱动碟片呼吸 + 底光脉动
+        let bass = 0;
+        if (freq) {
+          for (let k = 1; k <= 6; k++) bass += freq[k];
+          bass = bass / 6 / 255;
+        }
+        if (labelEl) labelEl.style.transform = `scale(${1 + bass * 0.055})`;
+        if (glowEl) glowEl.style.opacity = String(0.55 + bass * 0.45);
+
+        for (let i = 0; i < BARS; i++) {
+          // 镜像对称：右半用真实频谱（对数映射），左半镜像，环永远平衡
+          const k = i < HALF ? i : BARS - 1 - i;
+          const bin = Math.floor(Math.pow(k / HALF, 1.5) * 90);
+          const v = freq ? freq[bin] / 255 : 0.05 + 0.03 * Math.sin(t / 700 + i * 0.5);
+          // 峰值保持：缓慢下落的亮点帽
+          peaks[i] = Math.max(peaks[i] * 0.94 - 0.003, v);
+
+          const ang = (i / BARS) * Math.PI * 2 - Math.PI / 2;
+          const cos = Math.cos(ang);
+          const sin = Math.sin(ang);
+          const len = w * 0.014 + v * w * 0.115;
+          const plen = w * 0.014 + peaks[i] * w * 0.125;
+          const x1 = c + cos * base;
+          const y1 = c + sin * base;
+
+          // 频谱条：能量越高越亮（暗紫 → 亮青）
+          const e = Math.min(v * 1.4, 1);
+          rctx.strokeStyle = `rgba(${Math.round(96 + e * 62)}, ${Math.round(157 + e * 54)}, ${Math.round(247 - e * 9)}, ${0.5 + e * 0.5})`;
+          rctx.lineWidth = Math.max(2.5, w * 0.007);
+          rctx.lineCap = 'round';
+          rctx.beginPath();
+          rctx.moveTo(x1, y1);
+          rctx.lineTo(x1 + cos * len, y1 + sin * len);
+          rctx.stroke();
+
+          // 峰值帽：亮青小段
+          rctx.strokeStyle = `rgba(34, 211, 238, ${0.35 + peaks[i] * 0.6})`;
+          rctx.lineWidth = Math.max(2, w * 0.005);
+          rctx.beginPath();
+          rctx.moveTo(c + cos * (base + plen), c + sin * (base + plen));
+          rctx.lineTo(c + cos * (base + plen + w * 0.008), c + sin * (base + plen + w * 0.008));
+          rctx.stroke();
+        }
+      };
+      if (reduced.matches) {
+        // reduced-motion：画一圈静态细环
+        const w = ring.width;
+        const c = w / 2;
+        rctx.strokeStyle = 'rgba(34, 211, 238, 0.25)';
+        rctx.lineWidth = 1.5;
         rctx.beginPath();
-        rctx.moveTo(x1, y1);
-        rctx.lineTo(x2, y2);
+        rctx.arc(c, c, w * 0.3, 0, Math.PI * 2);
         rctx.stroke();
+      } else {
+        raf = requestAnimationFrame(draw);
+        cleanupFns.push(() => cancelAnimationFrame(raf));
       }
-    };
-    if (reduced.matches) {
-      // reduced-motion：画一圈静态细环
-      const w = ring.width;
-      const c = w / 2;
-      rctx.strokeStyle = 'rgba(34, 211, 238, 0.25)';
-      rctx.lineWidth = 1.5;
-      rctx.beginPath();
-      rctx.arc(c, c, w * 0.3, 0, Math.PI * 2);
-      rctx.stroke();
-    } else {
-      requestAnimationFrame(draw);
     }
-  }
+
+    sync();
+  };
+
+  window.addEventListener('noxaudio:state', () => syncRef?.());
+  document.addEventListener('astro:page-load', initPage);
+  initPage();
+
+  /* 空格键：全局播放/暂停（输入框聚焦时除外） */
+  document.addEventListener('keydown', (e) => {
+    if (e.code !== 'Space') return;
+    const tag = (e.target as HTMLElement)?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    e.preventDefault();
+    ((window as unknown as Record<string, unknown>).NoxAudio as NoxAudio | undefined)?.toggle();
+  });
 </script>
+
 
 <style>
   .music-page {
@@ -486,7 +540,7 @@ import { musicTracks } from '../../lib/data/music';
   .dp-times {
     display: flex;
     justify-content: space-between;
-    margin-top: var(--space-2);
+    margin-top: var(--space-1);
     font-family: var(--font-mono);
     font-size: 0.72rem;
     color: var(--color-text-tertiary);

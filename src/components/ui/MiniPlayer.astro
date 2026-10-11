@@ -168,6 +168,8 @@ import { musicTracks } from '../../lib/data/music';
   };
 
   window.addEventListener('noxaudio:state', sync);
+  // 路由切换后重估显隐（播放页隐藏迷你条）并刷新状态
+  document.addEventListener('astro:page-load', sync);
   sync();
 
   toggleBtn?.addEventListener('click', () => createEngine().toggle());
@@ -186,6 +188,8 @@ import { musicTracks } from '../../lib/data/music';
       last = t;
       const api = createEngine();
       if (api.index < 0 || !api.playing || !vctx) return;
+      // 顺手同步播放/暂停图标状态（跨页后防滞后）
+      toggleBtn?.classList.toggle('is-playing', api.playing);
       const freq = api.freq();
       if (!freq) return;
       const w = vis.width;

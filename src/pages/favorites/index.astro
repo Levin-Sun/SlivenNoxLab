@@ -88,18 +88,22 @@ const total = favoriteCategories.reduce((n, c) => n + c.items.length, 0);
 </BaseLayout>
 
 <script>
-  // 分类 tab 切换（无依赖）
-  const tabs = document.querySelectorAll<HTMLButtonElement>('.fav-tab');
-  const panels = document.querySelectorAll<HTMLElement>('.fav-panel');
-  tabs.forEach((tab) => {
-    tab.addEventListener('click', () => {
-      const key = tab.dataset.tab;
-      tabs.forEach((t) => {
-        const active = t === tab;
-        t.classList.toggle('is-active', active);
-        t.setAttribute('aria-selected', String(active));
+  // 分类 tab 切换（无依赖）；ClientRouter 下随 astro:page-load 重新绑定
+  document.addEventListener('astro:page-load', () => {
+    const tabs = document.querySelectorAll<HTMLButtonElement>('.fav-tab');
+    const panels = document.querySelectorAll<HTMLElement>('.fav-panel');
+    tabs.forEach((tab) => {
+      if (tab.dataset.bound) return;
+      tab.dataset.bound = '1';
+      tab.addEventListener('click', () => {
+        const key = tab.dataset.tab;
+        tabs.forEach((t) => {
+          const active = t === tab;
+          t.classList.toggle('is-active', active);
+          t.setAttribute('aria-selected', String(active));
+        });
+        panels.forEach((p) => p.classList.toggle('is-active', p.dataset.panel === key));
       });
-      panels.forEach((p) => p.classList.toggle('is-active', p.dataset.panel === key));
     });
   });
 </script>

@@ -172,38 +172,43 @@ const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.s
 </style>
 
 <script>
-  const header = document.querySelector<HTMLElement>('.site-nav');
-  const sentinel = document.querySelector<HTMLElement>('.nav-sentinel');
-  const toggle = document.querySelector<HTMLButtonElement>('.nav-toggle');
-  const menu = document.querySelector<HTMLElement>('#mobile-menu');
+  /* ClientRouter 下 astro:page-load 触发（含首次加载），每次对新导航重新绑定 */
+  document.addEventListener('astro:page-load', () => {
+    const header = document.querySelector<HTMLElement>('.site-nav');
+    const sentinel = document.querySelector<HTMLElement>('.nav-sentinel');
+    const toggle = document.querySelector<HTMLButtonElement>('.nav-toggle');
+    const menu = document.querySelector<HTMLElement>('#mobile-menu');
 
-  // 滚动毛玻璃：哨兵离开视口即切换状态，避免 scroll 事件逐帧触发
-  if (header && sentinel) {
-    new IntersectionObserver(([entry]) => {
-      header.dataset.scrolled = String(!entry.isIntersecting);
-    }).observe(sentinel);
-  }
-
-  const setOpen = (open: boolean) => {
-    if (!toggle || !menu) return;
-    toggle.setAttribute('aria-expanded', String(open));
-    toggle.setAttribute('aria-label', open ? '关闭菜单' : '打开菜单');
-    menu.hidden = !open;
-    document.body.style.overflow = open ? 'hidden' : '';
-  };
-
-  toggle?.addEventListener('click', () => {
-    setOpen(toggle.getAttribute('aria-expanded') !== 'true');
-  });
-
-  menu?.addEventListener('click', (e) => {
-    if ((e.target as HTMLElement).closest('a')) setOpen(false);
-  });
-
-  addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && toggle?.getAttribute('aria-expanded') === 'true') {
-      setOpen(false);
-      toggle.focus();
+    // 滚动毛玻璃：哨兵离开视口即切换状态，避免 scroll 事件逐帧触发
+    if (header && sentinel) {
+      new IntersectionObserver(([entry]) => {
+        header.dataset.scrolled = String(!entry.isIntersecting);
+      }).observe(sentinel);
+      // 路由切换后立即校准一次（新页可能初始就处于滚动状态）
+      header.dataset.scrolled = String(window.scrollY > 8);
     }
+
+    const setOpen = (open: boolean) => {
+      if (!toggle || !menu) return;
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.setAttribute('aria-label', open ? '关闭菜单' : '打开菜单');
+      menu.hidden = !open;
+      document.body.style.overflow = open ? 'hidden' : '';
+    };
+
+    toggle?.addEventListener('click', () => {
+      setOpen(toggle.getAttribute('aria-expanded') !== 'true');
+    });
+
+    menu?.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('a')) setOpen(false);
+    });
+
+    addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && toggle?.getAttribute('aria-expanded') === 'true') {
+        setOpen(false);
+        toggle.focus();
+      }
+    });
   });
 </script>
