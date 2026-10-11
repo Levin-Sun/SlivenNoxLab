@@ -198,9 +198,10 @@ import { musicTracks } from '../../lib/data/music';
         last = t;
         const w = ring.width;
         const c = w / 2;
+        const base = w * 0.29 - 2; // 起笔藏在碟片边缘
+        const maxReach = w * 0.47; // 硬上界：条形永不越出画布/卡片
         rctx.clearRect(0, 0, w, w);
         const freq = api.freq();
-        const base = w * 0.3; // 碟片半径之外一点点
 
         // 低音能量：驱动碟片呼吸 + 底光脉动
         let bass = 0;
@@ -211,19 +212,26 @@ import { musicTracks } from '../../lib/data/music';
         if (labelEl) labelEl.style.transform = `scale(${1 + bass * 0.055})`;
         if (glowEl) glowEl.style.opacity = String(0.55 + bass * 0.45);
 
+        // 缓慢旋转：整圈光条随时间转起来
+        const rot = t * 0.00006;
+
         for (let i = 0; i < BARS; i++) {
-          // 镜像对称：右半用真实频谱（对数映射），左半镜像，环永远平衡
+          // 镜像对称 + 高频补偿增益：低重合成曲也让整圈均匀起舞
           const k = i < HALF ? i : BARS - 1 - i;
           const bin = Math.floor(Math.pow(k / HALF, 1.5) * 90);
-          const v = freq ? freq[bin] / 255 : 0.05 + 0.03 * Math.sin(t / 700 + i * 0.5);
+          const gain = 0.5 + (k / HALF) * 1.1;
+          const v = freq
+            ? Math.min((freq[bin] / 255) * gain, 1)
+            : Math.min((0.05 + 0.03 * Math.sin(t / 700 + i * 0.5)) * gain, 1);
           // 峰值保持：缓慢下落的亮点帽
-          peaks[i] = Math.max(peaks[i] * 0.94 - 0.003, v);
+          peaks[i] = Math.max(peaks[i] * 0.94 - 0.002, v);
 
-          const ang = (i / BARS) * Math.PI * 2 - Math.PI / 2;
+          const ang = (i / BARS) * Math.PI * 2 - Math.PI / 2 + rot;
           const cos = Math.cos(ang);
           const sin = Math.sin(ang);
-          const len = w * 0.014 + v * w * 0.115;
-          const plen = w * 0.014 + peaks[i] * w * 0.125;
+          const span = maxReach - base;
+          const len = Math.min(w * 0.012 + v * span * 0.92, span);
+          const plen = Math.min(w * 0.012 + peaks[i] * span * 0.95, span);
           const x1 = c + cos * base;
           const y1 = c + sin * base;
 
@@ -366,24 +374,28 @@ import { musicTracks } from '../../lib/data/music';
     z-index: 2;
   }
 
-  /* ============ 碟片 + 环形频谱 ============ */
+  /* ============ 碟片 + 环形频谱：固定方形舞台，画布/条形全部内含 ============ */
   .disc-zone {
     position: relative;
-    display: grid;
-    place-items: center;
-    margin-block: var(--space-9) var(--space-6);
+    width: min(430px, 100%);
+    aspect-ratio: 1;
+    margin-inline: auto;
+    margin-block: var(--space-6);
   }
 
   .ring-vis {
     position: absolute;
-    width: min(460px, 92%);
-    aspect-ratio: 1;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     pointer-events: none;
   }
 
   .disc {
-    position: relative;
-    width: min(250px, 58%);
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 58%;
     aspect-ratio: 1;
     border-radius: 50%;
     display: grid;
