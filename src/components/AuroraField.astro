@@ -17,14 +17,14 @@
     pointer-events: none;
   }
 
-  /* 方案 B：纯 CSS 三层径向渐变漂移（零 JS 兜底） */
+  /* 方案 B：纯 CSS 三层径向渐变漂移（零 JS 兜底），透明度与方案 A 同纪律 */
   .aurora-css {
     position: absolute;
     inset: -20%;
     background:
-      radial-gradient(42% 38% at 22% 30%, rgba(124, 58, 237, 0.5), transparent 70%),
-      radial-gradient(38% 42% at 78% 26%, rgba(168, 85, 247, 0.36), transparent 70%),
-      radial-gradient(50% 45% at 55% 85%, rgba(91, 33, 182, 0.42), transparent 72%);
+      radial-gradient(38% 34% at 20% 18%, rgba(124, 58, 237, 0.32), transparent 70%),
+      radial-gradient(32% 36% at 76% 22%, rgba(168, 85, 247, 0.24), transparent 70%),
+      radial-gradient(44% 40% at 52% 92%, rgba(91, 33, 182, 0.28), transparent 72%);
     filter: blur(70px);
     animation: aurora-drift 26s ease-in-out infinite alternate;
   }
@@ -66,12 +66,13 @@
     const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 
     // 低分辨率画布 + 浏览器放大 = 天然的柔和光斑，逐帧成本极低
-    // 光斑只用品牌紫两族色相（256-305），青色不进光场（功能性颜色纪律）
+    // 光斑只用品牌紫两族色相（256-305），青色不进光场（功能性颜色纪律）。
+    // 透明度压低 + 光斑推向边缘：大面积基底保持深黑，光只做氛围不做主角
     const blobs = [
-      { x: 0.24, y: 0.32, r: 0.52, h: 268, a: 0.5, px: 0.00013, py: 0.00009, ph: 0.00004 },
-      { x: 0.72, y: 0.28, r: 0.46, h: 292, a: 0.42, px: 0.00011, py: 0.00012, ph: 0.00005 },
-      { x: 0.52, y: 0.78, r: 0.58, h: 256, a: 0.4, px: 0.00007, py: 0.00011, ph: 0.00003 },
-      { x: 0.88, y: 0.62, r: 0.34, h: 305, a: 0.3, px: 0.00014, py: 0.00008, ph: 0.00006 },
+      { x: 0.16, y: 0.12, r: 0.44, h: 268, a: 0.3, px: 0.00013, py: 0.00009, ph: 0.00004 },
+      { x: 0.68, y: 0.2, r: 0.4, h: 292, a: 0.26, px: 0.00011, py: 0.00012, ph: 0.00005 },
+      { x: 0.55, y: 0.88, r: 0.5, h: 256, a: 0.24, px: 0.00007, py: 0.00011, ph: 0.00003 },
+      { x: 0.9, y: 0.55, r: 0.3, h: 305, a: 0.18, px: 0.00014, py: 0.00008, ph: 0.00006 },
     ];
 
     let W = 0;

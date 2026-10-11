@@ -143,6 +143,11 @@ const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.s
     backdrop-filter: blur(20px);
   }
 
+  /* display:grid 会压过 hidden 属性的 UA 样式，必须显式夺回 */
+  .mobile-menu[hidden] {
+    display: none;
+  }
+
   .mobile-menu a {
     padding: 14px 8px;
     font-size: 1.15rem;

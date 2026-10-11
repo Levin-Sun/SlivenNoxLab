@@ -12,7 +12,8 @@ import Console from './Console.astro';
   <div class="container hero-inner">
     <div class="hero-copy">
       <h1 class="hero-title">
-        构建我的<span class="hero-accent">数字技术实验室</span>
+        <span class="hero-line">构建我的</span>
+        <span class="hero-line hero-accent">数字技术实验室</span>
       </h1>
       <p class="hero-sub">个人作品集 / 效率工具台 / 技术自留地</p>
       <div class="hero-cta">
@@ -58,8 +59,12 @@ import Console from './Console.astro';
   .hero-title {
     font-size: clamp(2.5rem, 1.2rem + 4.2vw, 4.25rem);
     font-weight: 700;
-    line-height: 1.12;
+    line-height: 1.14;
     color: var(--color-text);
+  }
+
+  .hero-line {
+    display: block;
   }
 
   .hero-accent {
