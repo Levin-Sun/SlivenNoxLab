@@ -25,6 +25,24 @@ public_path: /uploads
 locale: zh_Hans
 
 collections:
+  - name: albums
+    label: 相册
+    label_singular: 相册
+    files:
+      - name: album-list
+        label: 相册列表
+        file: src/data/albums.json
+        fields:
+          - name: albums
+            label: 相册
+            widget: list
+            fields:
+              - { name: slug, label: 文件夹名（英文，对应 src/assets/photos/ 下的文件夹）, widget: string, hint: 建好后把照片放进 src/assets/photos/这个名称/ 文件夹 }
+              - { name: title, label: 相册名称, widget: string }
+              - { name: category, label: 分类（如 人像/风景/街拍）, widget: string, default: 风景 }
+              - { name: desc, label: 一句话描述, widget: string, required: false }
+              - { name: order, label: 排序（小的在前）, widget: number, required: false }
+
   - name: notes
     label: 技术笔记
     label_singular: 笔记

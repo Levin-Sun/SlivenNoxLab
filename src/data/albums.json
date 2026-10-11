@@ -1,0 +1,7 @@
+{
+  "albums": [
+    { "slug": "portrait", "title": "人像", "category": "人像", "desc": "人物与情绪", "order": 1 },
+    { "slug": "landscape", "title": "风景", "category": "风景", "desc": "山川湖海与天空", "order": 2 },
+    { "slug": "street", "title": "街拍", "category": "街拍", "desc": "城市肌理与街头瞬间", "order": 3 }
+  ]
+}

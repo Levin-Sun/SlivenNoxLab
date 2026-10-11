@@ -3,169 +3,239 @@ import { Image } from 'astro:assets';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Reveal from '../../components/ui/Reveal.astro';
 import SectionHead from '../../components/ui/SectionHead.astro';
-import { albums } from '../../lib/data/photos';
-
-const placeholderSeeds = Array.from({ length: 8 }, (_, i) => `nox-photo-${i + 1}`);
+import { albums, photoCategories } from '../../lib/data/photos';
 ---
 
-<BaseLayout title="摄影 - SlivenNoxLab" description="相册与摄影作品。">
+<BaseLayout title="摄影 - SlivenNoxLab" description="相册与摄影作品：人像、风景、街拍。">
   <main id="main" class="container">
     <Reveal>
       <SectionHead title="摄影" />
     </Reveal>
 
+    <Reveal delay={50}>
+      <div class="photo-tabs" role="tablist" aria-label="相册分类">
+        {
+          photoCategories.map((c, i) => (
+            <button
+              class={`photo-tab ${i === 0 ? 'is-active' : ''}`}
+              type="button"
+              role="tab"
+              aria-selected={i === 0 ? 'true' : 'false'}
+              data-filter={c.key}
+            >
+              {c.label}
+            </button>
+          ))
+        }
+      </div>
+    </Reveal>
+
     {
       albums.length > 0 ? (
-        <div class="album-grid">
-          {albums.map((album, i) => (
-            <Reveal delay={i * 70}>
-              <a class="album-card" href={`/photos/${album.slug}/`}>
-                <div class="album-cover">
-                  {album.cover && (
-                    <Image
-                      src={album.cover.src}
-                      alt={album.title}
-                      width={900}
-                      height={640}
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  )}
-                </div>
-                <div class="album-info">
-                  <span class="album-title">{album.title}</span>
-                  {album.desc && <span class="album-desc">{album.desc}</span>}
-                  <span class="album-count">{album.photos.length} 张</span>
-                </div>
+        <Reveal delay={100}>
+          <div class="accordion" data-accordion>
+            {albums.map((album, i) => (
+              <a
+                class={`strip ${i === 0 ? 'is-open' : ''}`}
+                href={`/photos/${album.slug}/`}
+                data-category={album.category}
+                aria-label={`${album.title} 相册，${album.photos.length} 张`}
+              >
+                {album.coverSrc ? (
+                  <Image src={album.coverSrc} alt={`${album.title} 相册封面`} width={720} loading={i === 0 ? 'eager' : 'lazy'} decoding="async" />
+                ) : (
+                  <img src={album.coverFallback} alt={`${album.title} 相册封面占位图`} loading={i === 0 ? 'eager' : 'lazy'} decoding="async" />
+                )}
+                <span class="strip-veil" aria-hidden="true" />
+                <span class="strip-label">
+                  <span class="strip-title">{album.title}</span>
+                  <span class="strip-meta">{album.desc ?? album.category} · {album.photos.length} 张</span>
+                </span>
               </a>
-            </Reveal>
-          ))}
-        </div>
+            ))}
+          </div>
+        </Reveal>
       ) : (
-        <div class="photos-empty">
-          <Reveal delay={60}>
-            <p class="empty-guide">
-              相册机制已就绪：把照片放进 <code class="path-code">src/assets/photos/相册名/</code> 文件夹，
-              重新构建即自动成册（Astro Image 构建时优化 WebP/AVIF）。
-              相册中文名在 <code class="path-code">src/config/photos.ts</code> 登记。
-            </p>
-          </Reveal>
-          <Reveal delay={120}>
-            <div class="masonry placeholder">
-              {placeholderSeeds.map((seed, i) => (
-                <figure class={`ph-item ph-${(i % 3) + 1}`}>
-                  <img
-                    src={`https://picsum.photos/seed/${seed}/800/${i % 3 === 0 ? 1100 : i % 3 === 1 ? 800 : 950}`}
-                    alt="占位图，展示瀑布流布局"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </figure>
-              ))}
-            </div>
-          </Reveal>
-        </div>
+        <Reveal delay={100}>
+          <p class="photos-empty">还没有相册。在后台"相册"集合里新建一个，再往对应文件夹丢照片。</p>
+        </Reveal>
       )
     }
+
+    <Reveal delay={160}>
+      <p class="photos-guide">
+        新建相册：后台"相册"集合点新建，填名称与分类；照片丢进
+        <code class="path-code">src/assets/photos/相册slug/</code>，构建时自动优化收录。
+      </p>
+    </Reveal>
   </main>
 </BaseLayout>
 
+<script>
+  // 分类筛选 + 手风琴交互（hover 展开；触屏点按展开）
+  const tabs = document.querySelectorAll<HTMLButtonElement>('.photo-tab');
+  const strips = document.querySelectorAll<HTMLElement>('.strip');
+  const accordion = document.querySelector<HTMLElement>('[data-accordion]');
+
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      tabs.forEach((t) => {
+        const active = t === tab;
+        t.classList.toggle('is-active', active);
+        t.setAttribute('aria-selected', String(active));
+      });
+      const key = tab.dataset.filter;
+      let firstVisible = true;
+      strips.forEach((strip) => {
+        const show = key === 'all' || strip.dataset.category === key;
+        strip.classList.toggle('is-hidden', !show);
+        strip.classList.toggle('is-open', show && firstVisible);
+        if (show) firstVisible = false;
+      });
+      accordion?.classList.toggle('is-single', strips.length - [...strips].filter((s) => s.classList.contains('is-hidden')).length === 1);
+    });
+  });
+
+  // 触屏/精确指针点按切换展开条
+  strips.forEach((strip) => {
+    strip.addEventListener('click', (e) => {
+      if (!strip.classList.contains('is-open') && matchMedia('(pointer: coarse)').matches) {
+        e.preventDefault();
+        strips.forEach((s) => s.classList.toggle('is-open', s === strip));
+      }
+    });
+  });
+</script>
+
 <style>
-  .album-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-5);
+  .photo-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-6);
   }
 
-  .album-grid > :global(.reveal) {
-    display: grid;
-  }
-
-  .album-card {
-    display: block;
-    text-decoration: none;
-    border-radius: var(--radius-card);
-    overflow: hidden;
+  .photo-tab {
+    font-size: 0.92rem;
+    padding: 9px 18px;
+    border-radius: var(--radius-pill);
     border: 1px solid var(--color-border);
-    background: var(--color-bg-raised);
-    transition: border-color var(--dur-fast) var(--ease-out);
+    color: var(--color-text-secondary);
+    transition:
+      color var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out),
+      background var(--dur-fast) var(--ease-out);
   }
 
-  .album-card:hover {
+  .photo-tab:hover {
+    color: var(--color-text);
     border-color: var(--color-border-strong);
   }
 
-  .album-cover :global(img) {
-    width: 100%;
-    aspect-ratio: 3 / 2;
-    object-fit: cover;
-    display: block;
-    transition: transform 0.7s var(--ease-out);
+  .photo-tab.is-active {
+    color: #fff;
+    background: var(--color-accent);
+    border-color: var(--color-accent);
   }
 
-  .album-card:hover .album-cover :global(img) {
-    transform: scale(1.02);
+  /* Accordion Gallery（ReactBits 同名组件的零依赖移植）：
+     横条收拢成窄条，悬停/默认条展开露出整幅封面 */
+  .accordion {
+    display: flex;
+    gap: var(--space-3);
+    height: clamp(300px, 46vw, 460px);
   }
 
-  .album-info {
-    display: grid;
-    gap: var(--space-1);
-    padding: var(--space-4) var(--space-5);
-  }
-
-  .album-title {
-    font-weight: 600;
-    font-size: 1.05rem;
-    color: var(--color-text);
-  }
-
-  .album-desc {
-    font-size: 0.95rem;
-    color: var(--color-text-secondary);
-  }
-
-  .album-count {
-    font-family: var(--font-mono);
-    font-size: 0.78rem;
-    color: var(--color-text-tertiary);
-  }
-
-  /* 瀑布流：CSS 多列，占位演示与真实相册共用 */
-  .masonry {
-    columns: 3;
-    column-gap: var(--space-4);
-  }
-
-  .masonry.placeholder .ph-item {
-    margin: 0 0 var(--space-4);
-    break-inside: avoid;
+  .strip {
+    position: relative;
+    flex: 1;
+    min-width: 0;
     border-radius: var(--radius-card);
     overflow: hidden;
     border: 1px solid var(--color-border);
+    transition: flex 0.65s var(--ease-out);
   }
 
-  .masonry.placeholder .ph-1 img {
-    aspect-ratio: 8 / 11;
+  .strip.is-open {
+    flex: 3.4;
   }
 
-  .masonry.placeholder .ph-2 img {
-    aspect-ratio: 1 / 1;
+  /* 桌面精确指针：悬停即展开（点击仍是进入相册） */
+  @media (pointer: fine) {
+    .strip:hover {
+      flex: 3.4;
+    }
+
+    .strip:hover .strip-meta {
+      opacity: 1;
+    }
   }
 
-  .masonry.placeholder .ph-3 img {
-    aspect-ratio: 8 / 9.5;
+  .strip.is-hidden {
+    display: none;
   }
 
-  .masonry img {
+  .accordion.is-single .strip.is-open {
+    flex: 1;
+  }
+
+  .strip :global(img) {
+    position: absolute;
+    inset: 0;
     width: 100%;
-    display: block;
+    height: 100%;
+    object-fit: cover;
+    /* 收拢时图片以中心为锚，展开时完整呈现 */
+    transition: opacity 0.5s var(--ease-out);
   }
 
-  .empty-guide {
-    max-width: 62ch;
-    color: var(--color-text-secondary);
+  .strip-veil {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(6, 3, 16, 0.72), rgba(6, 3, 16, 0.05) 55%);
+    transition: opacity 0.5s var(--ease-out);
+  }
+
+  .strip-label {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: var(--space-5);
+    display: grid;
+    gap: var(--space-1);
+    white-space: nowrap;
+  }
+
+  .strip-title {
+    font-weight: 600;
+    font-size: 1.15rem;
+    color: #fff;
+  }
+
+  .strip-meta {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: rgba(237, 234, 247, 0.78);
+    opacity: 0;
+    transition: opacity 0.45s var(--ease-out) 0.15s;
+  }
+
+  .strip.is-open .strip-meta,
+  .strip:hover .strip-meta {
+    opacity: 1;
+  }
+
+  .photos-empty {
+    color: var(--color-text-tertiary);
+  }
+
+  .photos-guide {
+    margin-top: var(--space-8);
+    max-width: 66ch;
+    color: var(--color-text-tertiary);
+    font-size: 0.9rem;
     line-height: 1.8;
-    margin-bottom: var(--space-8);
   }
 
   .path-code {
@@ -178,27 +248,25 @@ const placeholderSeeds = Array.from({ length: 8 }, (_, i) => `nox-photo-${i + 1}
     white-space: nowrap;
   }
 
-  .photos-empty {
-    /* 占位态整体 */
-  }
-
-  @media (max-width: 900px) {
-    .album-grid {
-      grid-template-columns: 1fr 1fr;
+  @media (max-width: 700px) {
+    /* 窄屏转为纵向手风琴 */
+    .accordion {
+      flex-direction: column;
+      height: auto;
     }
 
-    .masonry {
-      columns: 2;
-    }
-  }
-
-  @media (max-width: 600px) {
-    .album-grid {
-      grid-template-columns: 1fr;
+    .strip {
+      height: 84px;
+      flex: none;
     }
 
-    .masonry {
-      columns: 1;
+    .strip.is-open {
+      height: 300px;
+      flex: none;
+    }
+
+    .strip-label {
+      padding: var(--space-4);
     }
   }
 </style>
