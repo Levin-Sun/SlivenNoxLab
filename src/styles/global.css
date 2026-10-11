@@ -119,6 +119,11 @@ prose a,
   padding-inline: clamp(16px, 4vw, 32px);
 }
 
+/* 首页区块统一节奏（Hero 之后的纵向呼吸） */
+.section {
+  margin-top: var(--space-20);
+}
+
 /* 跳转到主内容（键盘用户） */
 .skip-link {
   position: fixed;
@@ -170,12 +175,29 @@ prose a,
 }
 
 .btn-primary {
+  position: relative;
+  overflow: hidden;
   background: var(--color-accent);
   color: #fff;
 }
 
 .btn-primary:hover {
   background: var(--color-accent-soft);
+}
+
+/* 扫光（ReactBits Shiny Text 移植）：hover 时一道柔光扫过按钮 */
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 42%, rgba(255, 255, 255, 0.32) 50%, transparent 58%);
+  transform: translateX(-130%);
+  transition: transform 0.65s var(--ease-out);
+  pointer-events: none;
+}
+
+.btn-primary:hover::after {
+  transform: translateX(130%);
 }
 
 .btn-ghost {

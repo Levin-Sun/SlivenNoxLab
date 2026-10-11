@@ -36,6 +36,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:locale" content="zh_CN" />
+    <script is:inline>document.documentElement.classList.add('js');</script>
   </head>
 
   <body>
@@ -60,3 +61,56 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     height: 8px;
   }
 </style>
+
+<script>
+  /* ============ 全站交互行为（单实例，避免组件脚本重复执行） ============ */
+
+  // 滚动入场：.reveal 元素进入视口后解除模糊与位移（ReactBits Scroll Reveal 移植）
+  const revealEls = document.querySelectorAll('.reveal');
+  if (revealEls.length) {
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-in');
+            io.unobserve(entry.target);
+          }
+        }
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -48px 0px' },
+    );
+    revealEls.forEach((el) => io.observe(el));
+  }
+
+  // 指针聚光：指针位置写入卡片 CSS 变量（ReactBits Spotlight Card 移植）
+  document.querySelectorAll<HTMLElement>('[data-spotlight]').forEach((card) => {
+    card.addEventListener('pointermove', (e) => {
+      const rect = card.getBoundingClientRect();
+      card.style.setProperty('--mx', `${e.clientX - rect.left}px`);
+      card.style.setProperty('--my', `${e.clientY - rect.top}px`);
+    });
+  });
+
+  // 解码彩蛋（ReactBits Decrypted Text 移植）：目标文本一次性乱序收敛。
+  // reduced-motion 直接跳过；字符集无 em-dash（规范禁用）。
+  const GLYPHS = '!<>-_\\/[]{}=+*^?#01';
+  document.querySelectorAll<HTMLElement>('[data-scramble]').forEach((el) => {
+    const finalText = el.dataset.text ?? el.textContent ?? '';
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const duration = 900;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const progress = Math.min((now - start) / duration, 1);
+      const settled = Math.floor(finalText.length * progress);
+      let out = finalText.slice(0, settled);
+      for (let i = settled; i < finalText.length; i++) {
+        const ch = finalText[i];
+        out += ch === ' ' ? ' ' : GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
+      }
+      el.textContent = out;
+      if (progress < 1) requestAnimationFrame(tick);
+      else el.textContent = finalText;
+    };
+    requestAnimationFrame(tick);
+  });
+</script>

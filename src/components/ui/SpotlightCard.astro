@@ -1,0 +1,71 @@
+---
+// 指针聚光卡片（ReactBits Spotlight Card 的零依赖移植）。
+// 指针位置写入 CSS 变量，径向高光跟随；指针跟踪统一在 BaseLayout 全局脚本。
+interface Props {
+  href?: string;
+  tone?: 'base' | 'accent';
+  class?: string;
+}
+const { href, tone = 'base', class: cls } = Astro.props;
+const Tag = href ? 'a' : 'div';
+---
+
+<Tag
+  href={href}
+  class={`spot-card ${tone === 'accent' ? 'spot-accent' : ''} ${cls ?? ''}`}
+  data-spotlight
+>
+  <slot />
+</Tag>
+
+<style>
+  .spot-card {
+    position: relative;
+    display: block;
+    height: 100%;
+    background: var(--color-bg-raised);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    text-decoration: none;
+    transition:
+      transform var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out);
+  }
+
+  /* 指针聚光层：位置由 --mx / --my 驱动 */
+  .spot-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+      280px circle at var(--mx, 50%) var(--my, 50%),
+      rgba(168, 85, 247, 0.13),
+      transparent 65%
+    );
+    opacity: 0;
+    transition: opacity var(--dur-fast) var(--ease-out);
+    pointer-events: none;
+  }
+
+  .spot-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--color-border-strong);
+  }
+
+  .spot-card:hover::before {
+    opacity: 1;
+  }
+
+  /* 品牌强调格：紫底渐入 */
+  .spot-accent {
+    background: linear-gradient(150deg, var(--color-accent-dim), var(--color-bg-raised) 58%);
+  }
+
+  @media (pointer: coarse) {
+    .spot-card:hover {
+      transform: none;
+    }
+  }
+</style>

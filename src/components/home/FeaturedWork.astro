@@ -1,0 +1,192 @@
+---
+// 精选作品：HALDE 编辑式展示行——1 全宽真作品 + 2 占位半宽行（诚实标注）。
+import Reveal from '../ui/Reveal.astro';
+import SectionHead from '../ui/SectionHead.astro';
+import { featuredWorks } from '../../config/home';
+
+const [main, ...rest] = featuredWorks;
+---
+
+<section class="section container">
+  <Reveal>
+    <SectionHead title="精选作品" href="/projects/" linkLabel="全部作品" />
+  </Reveal>
+
+  {
+    main && (
+      <Reveal>
+        <article class="work-main">
+          <div class="work-media">
+            {main.media && <img src={main.media} alt={main.alt ?? main.title} width="2560" height="1288" loading="lazy" decoding="async" />}
+          </div>
+          <div class="work-info">
+            <div class="work-title-row">
+              <h3 class="work-title">{main.title}</h3>
+              {main.meta && <span class="work-meta">{main.meta}</span>}
+            </div>
+            <p class="work-desc">{main.desc}</p>
+            {
+              main.links && (
+                <div class="work-links">
+                  {main.links.map((l) => (
+                    <a class="content-link" href={l.href} target={l.external ? '_blank' : undefined} rel={l.external ? 'noopener' : undefined}>
+                      {l.label}
+                    </a>
+                  ))}
+                </div>
+              )
+            }
+          </div>
+        </article>
+      </Reveal>
+    )
+  }
+
+  <div class="work-sub-grid">
+    {
+      rest.map((w, i) => (
+        <Reveal delay={i * 80}>
+          <article class="work-sub">
+            <div class="work-media">
+              <img
+                src={`https://picsum.photos/seed/nox-slot-${i + 2}/900/560`}
+                alt="占位图，等待替换为真实作品封面"
+                width="900"
+                height="560"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+            <div class="work-sub-info">
+              <h3 class="work-title">{w.title}</h3>
+              <span class="chip">占位</span>
+            </div>
+            <p class="work-desc">{w.desc}</p>
+          </article>
+        </Reveal>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  /* 全宽编辑式展示行：媒体在上的完整叙事 */
+  .work-main {
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  .work-media {
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-inset);
+  }
+
+  .work-media img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 21 / 9;
+    object-fit: cover;
+    object-position: 50% 22%; /* 聚焦登录卡片区域，避免白底空旷区抢镜 */
+    transition: transform 0.8s var(--ease-out);
+  }
+
+  .work-main:hover .work-media img {
+    transform: scale(1.015);
+  }
+
+  .work-info {
+    display: grid;
+    gap: var(--space-3);
+    max-width: 72ch;
+  }
+
+  .work-title-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+  }
+
+  .work-title {
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  /* 等宽大写元信息行（HALDE 手法，仅真实数据） */
+  .work-meta {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    color: var(--color-text-tertiary);
+  }
+
+  .work-desc {
+    color: var(--color-text-secondary);
+    line-height: 1.7;
+  }
+
+  .work-links {
+    display: flex;
+    gap: var(--space-5);
+  }
+
+  /* 半宽占位行 */
+  .work-sub-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+    margin-top: var(--space-4);
+  }
+
+  .work-sub {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .work-sub .work-media img {
+    aspect-ratio: 16 / 10;
+    opacity: 0.55;
+  }
+
+  .work-sub-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .work-sub .work-title {
+    font-size: 1.05rem;
+    font-weight: 550;
+    color: var(--color-text-secondary);
+  }
+
+  .chip {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--color-border-strong);
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+  }
+
+  .work-sub .work-desc {
+    font-size: 0.85rem;
+    color: var(--color-text-tertiary);
+  }
+
+  @media (max-width: 768px) {
+    .work-sub-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .work-media img {
+      aspect-ratio: 16 / 9;
+    }
+  }
+</style>

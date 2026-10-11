@@ -1,0 +1,46 @@
+---
+// 滚动入场容器：模糊 → 清晰 + 上浮（ReactBits Scroll Reveal / Blur Text 的移植）。
+// 观察逻辑统一在 BaseLayout 的全局脚本里，这里只是语义包装。
+interface Props {
+  delay?: number;
+  class?: string;
+}
+const { delay = 0, class: cls } = Astro.props;
+---
+
+<div class={`reveal ${cls ?? ''}`} style={delay ? `--reveal-delay: ${delay}ms` : undefined}>
+  <slot />
+</div>
+
+<style>
+  .reveal {
+    --reveal-delay: 0ms;
+  }
+
+  /* 无 JS 环境直接可见（html.js 由 BaseLayout 内联脚本标记） */
+  :global(html.js) .reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    filter: blur(6px);
+    transition:
+      opacity 0.7s var(--ease-out),
+      transform 0.7s var(--ease-out),
+      filter 0.7s var(--ease-out);
+    transition-delay: var(--reveal-delay);
+  }
+
+  :global(html.js) .reveal.is-in {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(html.js) .reveal {
+      opacity: 1;
+      transform: none;
+      filter: none;
+      transition: none;
+    }
+  }
+</style>

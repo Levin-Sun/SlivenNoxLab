@@ -1,0 +1,51 @@
+---
+// 区块标题行：标题 + 可选右侧链接。纪律：不带 eyebrow（craft-floor 禁令）。
+interface Props {
+  title: string;
+  href?: string;
+  linkLabel?: string;
+}
+const { title, href, linkLabel } = Astro.props;
+---
+
+<div class="sec-head">
+  <h2>{title}</h2>
+  {
+    href && linkLabel && (
+      <a class="sec-link" href={href}>
+        {linkLabel} <span class="sec-arrow">→</span>
+      </a>
+    )
+  }
+</div>
+
+<style>
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: var(--space-8);
+  }
+
+  h2 {
+    font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2.1rem);
+    color: var(--color-text);
+  }
+
+  .sec-link {
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .sec-link:hover {
+    color: var(--color-interactive);
+  }
+
+  .sec-arrow {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+  }
+</style>

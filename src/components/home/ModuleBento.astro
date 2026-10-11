@@ -1,0 +1,151 @@
+---
+// 模块入口 bento：五项五格，非对称跨度（3+3 / 2+2+2），SpotlightCard 聚光交互。
+// 格内用单字排版印章作视觉锚（排版手法，非手绘图标）。
+import SpotlightCard from '../ui/SpotlightCard.astro';
+import Reveal from '../ui/Reveal.astro';
+import SectionHead from '../ui/SectionHead.astro';
+import { modules } from '../../config/home';
+
+const spans = ['span-3', 'span-3', 'span-2', 'span-2', 'span-2'];
+---
+
+<section class="section container">
+  <Reveal>
+    <SectionHead title="实验室模块" />
+  </Reveal>
+
+  <div class="bento">
+    {
+      modules.map((m, i) => (
+        <Reveal delay={i * 70} class={spans[i]}>
+          <SpotlightCard href={m.href} tone={m.tone} class="cell">
+            <div class="cell-inner">
+              <div class="cell-top">
+                <span class="cell-glyph" aria-hidden="true">{m.glyph}</span>
+                <span class={`chip ${m.status.live ? 'chip-live' : 'chip-plan'}`}>{m.status.label}</span>
+              </div>
+              <div class="cell-bottom">
+                <h3 class="cell-name">{m.name}</h3>
+                <p class="cell-desc">{m.desc}</p>
+              </div>
+            </div>
+          </SpotlightCard>
+        </Reveal>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .bento {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: var(--space-4);
+  }
+
+  .bento > :global(.reveal) {
+    display: grid;
+  }
+
+  :global(.span-3) {
+    grid-column: span 3;
+  }
+
+  :global(.span-2) {
+    grid-column: span 2;
+  }
+
+  .cell {
+    height: 100%;
+  }
+
+  .cell-inner {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: var(--space-8);
+    height: 100%;
+    padding: var(--space-5) var(--space-5) var(--space-6);
+    min-height: 180px;
+  }
+
+  .cell-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  /* 排版印章：品牌紫单字，编辑气质的视觉锚 */
+  .cell-glyph {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 2.2rem;
+    line-height: 1;
+    color: var(--color-accent-soft);
+  }
+
+  .cell-bottom {
+    display: grid;
+    gap: var(--space-1);
+  }
+
+  .cell-name {
+    font-size: 1.05rem;
+    font-weight: 550;
+    color: var(--color-text);
+  }
+
+  .cell-desc {
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+  }
+
+  .chip {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 5px 11px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--color-border-strong);
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+  }
+
+  .chip-live {
+    color: var(--color-interactive);
+    border-color: rgba(34, 211, 238, 0.4);
+  }
+
+  @media (max-width: 960px) {
+    .bento {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    :global(.span-3),
+    :global(.span-2) {
+      grid-column: span 1;
+    }
+
+    /* 第一行两格在窄屏合并为通栏，保持节奏 */
+    :global(.bento > .reveal:first-child) {
+      grid-column: span 2;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .bento {
+      grid-template-columns: 1fr;
+    }
+
+    :global(.span-3),
+    :global(.span-2),
+    :global(.bento > .reveal:first-child) {
+      grid-column: span 1;
+    }
+
+    .cell-inner {
+      min-height: 150px;
+    }
+  }
+</style>
