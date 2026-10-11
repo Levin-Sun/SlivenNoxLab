@@ -191,7 +191,7 @@ Astro API Routes / Node+Express、SQLite/PostgreSQL + Prisma、Decap CMS、JWT�
 4. 部署：**新增 GitHub Actions CI/CD**（push → 构建 → rsync 部署）作为主通道，初版的本地一键脚本保留为备通道；Nginx + 域名 + HTTPS 配置；`/rag/*` 反代 Umax RAG（已确认路径反代方案）
 5. 操作手册（新增内容 = 放文件 → git push，CI 自动上线）+ 部署脚本
 
-### 阶段五：扩展预留层（可选，1 天）
+### 阶段五：扩展预留层（可选，1 天）【进行中：音乐播放器自研工具已交付 2026-10-12】
 
 1. 数据访问层接口抽象复核（切换数据源 0 改动页面）
 2. API 路由目录 + 环境变量预留 【保留】
