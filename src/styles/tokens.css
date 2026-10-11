@@ -1,0 +1,81 @@
+/*
+ * SlivenNoxLab 设计 Token（唯一事实源）
+ * 规范出处：PLAN.md 第 4 节（拷问定稿版）
+ * 纪律速记：全站渐变只允许 Hero 光场一处；紫色只上"块"不上正文字；
+ *          青色 #22d3ee 是功能性颜色（链接/焦点/实时状态），不参与品牌表达。
+ */
+
+:root {
+  /* ---- 基底（深黑紫，页面唯一主题，v1 不做浅色） ---- */
+  --color-bg: #0a0614;            /* 深黑紫基底 */
+  --color-bg-raised: #130b22;     /* 卡片 / 浮层 */
+  --color-bg-inset: #060310;      /* 更深的内嵌面 */
+
+  /* ---- 文字（全部对 --color-bg 实测对比度） ---- */
+  --color-text: #edeaf7;          /* 16.9:1，近白微紫，正文 */
+  --color-text-secondary: #a9a3c2; /* 8.3:1，次要说明 */
+  --color-text-tertiary: #8a84a8;  /* 5.7:1，极次要元信息（AA 通过） */
+
+  /* ---- 品牌紫（唯一品牌强调色，全站锁定） ---- */
+  --color-accent: #7c3aed;        /* 3.5:1，只用于块：按钮底/描边/选中态 */
+  --color-accent-soft: #a855f7;   /* 5.1:1，hover 与大号标题着色可用 */
+  --color-accent-dim: rgba(124, 58, 237, 0.16);
+
+  /* ---- 交互青（功能性：链接 hover / focus 环 / 实时状态） ---- */
+  --color-interactive: #22d3ee;   /* 11.1:1 */
+
+  /* ---- 状态色（语义限用，不装饰） ---- */
+  --color-danger: #f87171;
+
+  /* ---- 线与边 ---- */
+  --color-border: rgba(168, 157, 220, 0.14);
+  --color-border-strong: rgba(168, 157, 220, 0.3);
+
+  /* ---- 阴影（有偏移有虚化，禁止零偏移彩色光环） ---- */
+  --shadow-card: 0 24px 64px rgba(3, 0, 10, 0.55);
+  --shadow-pop: 0 8px 24px rgba(3, 0, 10, 0.4);
+
+  /* ---- 字体栈 ----
+   * 拉丁标题走 Space Grotesk（自托管，fontsource 变量字体）；
+   * 等宽 JetBrains Mono 只用于代码/数据/元信息行；
+   * 中文走系统栈（CJK 网络字体 5-10MB，个人站不值得，PLAN.md 4.2 已定）。
+   * CJK 显示字体的层级靠字重与字号表达，不靠字距。 */
+  --font-display: 'Space Grotesk Variable', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
+  --font-sans: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'Cascadia Mono', monospace;
+
+  /* ---- 圆角体系：圆角属于界面壳，方角属于内容物（PLAN.md 4.5） ---- */
+  --radius-card: 16px;
+  --radius-input: 8px;
+  --radius-pill: 999px;
+
+  /* ---- 间距尺度（4px 基） ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-8: 48px;
+  --space-10: 64px;
+  --space-12: 80px;
+  --space-14: 96px;
+  --space-16: 128px;
+  --space-20: 160px;
+
+  /* ---- 三级断点（PLAN.md 4.5：1200 / 768 / 480） ---- */
+  --bp-tablet: 768px;
+  --bp-desktop: 1200px;
+
+  /* ---- 动效（PLAN.md 4.3：强度 5-6/10；缓出曲线统一） ---- */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 180ms;
+  --dur-med: 400ms;
+
+  /* ---- z-index 分层表（全站唯一出处，禁止裸写数字） ----
+   * 100 导航 | 120 噪点覆盖层（恒在顶层但不可交互） | 200 移动菜单 | 300 跳转链接/弹窗 */
+  --z-nav: 100;
+  --z-grain: 120;
+  --z-menu: 200;
+  --z-skip: 300;
+}

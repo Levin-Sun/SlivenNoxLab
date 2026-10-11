@@ -1,0 +1,64 @@
+---
+// 全局页脚：版权 + 极简导航 + GitHub。不放版本号、不放装饰文字条（反俗套纪律）
+import { navItems } from '../config/nav';
+import { site } from '../config/site';
+---
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <p class="footer-copy">© {site.year} {site.name}</p>
+
+    <nav class="footer-nav" aria-label="页脚导航">
+      {navItems.map((item) => <a href={item.href}>{item.label}</a>)}
+    </nav>
+
+    <a class="footer-github" href={site.github} target="_blank" rel="me noopener">GitHub</a>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    border-top: 1px solid var(--color-border);
+    padding: var(--space-6) 0;
+  }
+
+  .footer-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3) var(--space-6);
+    font-size: 0.85rem;
+    color: var(--color-text-tertiary);
+  }
+
+  .footer-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+  }
+
+  .footer-nav a {
+    padding: 4px 10px;
+    border-radius: var(--radius-input);
+    color: var(--color-text-tertiary);
+    text-decoration: none;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .footer-nav a:hover {
+    color: var(--color-text);
+  }
+
+  .footer-github {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .footer-github:hover {
+    color: var(--color-interactive);
+  }
+</style>

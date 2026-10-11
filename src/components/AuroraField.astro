@@ -1,0 +1,146 @@
+---
+// Hero 紫色光场 —— 全站唯一的氛围动效（PLAN.md 4.1 氛围光效预算）
+// 双方案对比：默认 Canvas 等离子（方案 A），URL 加 ?aurora=css 切换纯 CSS 渐变（方案 B）。
+// 无 JS 时 CSS 静态层兜底；prefers-reduced-motion 时画布只渲染一帧静态光。
+---
+
+<div class="aurora" data-variant="canvas" aria-hidden="true">
+  <div class="aurora-css"></div>
+  <canvas class="aurora-canvas"></canvas>
+</div>
+
+<style>
+  .aurora {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  /* 方案 B：纯 CSS 三层径向渐变漂移（零 JS 兜底） */
+  .aurora-css {
+    position: absolute;
+    inset: -20%;
+    background:
+      radial-gradient(42% 38% at 22% 30%, rgba(124, 58, 237, 0.5), transparent 70%),
+      radial-gradient(38% 42% at 78% 26%, rgba(168, 85, 247, 0.36), transparent 70%),
+      radial-gradient(50% 45% at 55% 85%, rgba(91, 33, 182, 0.42), transparent 72%);
+    filter: blur(70px);
+    animation: aurora-drift 26s ease-in-out infinite alternate;
+  }
+
+  .aurora[data-variant='canvas'] .aurora-css {
+    animation: none;
+  }
+
+  .aurora-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+  }
+
+  .aurora[data-variant='canvas'] .aurora-canvas {
+    display: block;
+  }
+
+  @keyframes aurora-drift {
+    to {
+      transform: translate(-4%, 3%) rotate(4deg) scale(1.08);
+    }
+  }
+</style>
+
+<script>
+  const root = document.querySelector<HTMLElement>('.aurora');
+
+  if (root) {
+    // 方案切换：?aurora=css 使用纯 CSS 渐变，便于 A/B 对比
+    if (new URLSearchParams(location.search).get('aurora') === 'css') {
+      root.dataset.variant = 'css';
+    }
+
+    const canvas = root.querySelector<HTMLCanvasElement>('.aurora-canvas');
+    const ctx = canvas?.getContext('2d');
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+
+    // 低分辨率画布 + 浏览器放大 = 天然的柔和光斑，逐帧成本极低
+    // 光斑只用品牌紫两族色相（256-305），青色不进光场（功能性颜色纪律）
+    const blobs = [
+      { x: 0.24, y: 0.32, r: 0.52, h: 268, a: 0.5, px: 0.00013, py: 0.00009, ph: 0.00004 },
+      { x: 0.72, y: 0.28, r: 0.46, h: 292, a: 0.42, px: 0.00011, py: 0.00012, ph: 0.00005 },
+      { x: 0.52, y: 0.78, r: 0.58, h: 256, a: 0.4, px: 0.00007, py: 0.00011, ph: 0.00003 },
+      { x: 0.88, y: 0.62, r: 0.34, h: 305, a: 0.3, px: 0.00014, py: 0.00008, ph: 0.00006 },
+    ];
+
+    let W = 0;
+    let H = 0;
+    let last = 0;
+    let raf = 0;
+    let running = false;
+
+    const resize = () => {
+      W = Math.max(2, Math.ceil(canvas.clientWidth / 8));
+      H = Math.max(2, Math.ceil(canvas.clientHeight / 8));
+      canvas.width = W;
+      canvas.height = H;
+    };
+
+    const paint = (t: number) => {
+      if (!ctx) return;
+      ctx.clearRect(0, 0, W, H);
+      ctx.globalCompositeOperation = 'lighter';
+      for (const b of blobs) {
+        const x = (b.x + Math.sin(t * b.px) * 0.08) * W;
+        const y = (b.y + Math.cos(t * b.py) * 0.09) * H;
+        const r = b.r * Math.min(W, H) * (1 + Math.sin(t * b.ph) * 0.1);
+        const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+        g.addColorStop(0, `hsla(${b.h + Math.sin(t * b.ph) * 6}, 78%, 60%, ${b.a})`);
+        g.addColorStop(1, 'hsla(0, 0%, 0%, 0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, H);
+      }
+    };
+
+    // 30fps 帧率上限：光斑漂移是慢速氛围，不需要满帧
+    const loop = (t: number) => {
+      raf = requestAnimationFrame(loop);
+      if (t - last < 33) return;
+      last = t;
+      paint(t);
+    };
+
+    const start = () => {
+      if (running || reduced.matches) return;
+      running = true;
+      raf = requestAnimationFrame(loop);
+    };
+
+    const stop = () => {
+      running = false;
+      cancelAnimationFrame(raf);
+    };
+
+    resize();
+    paint(0); // 静态帧：reduced-motion 下的最终状态
+    if (!reduced.matches) start();
+
+    // 标签页隐藏即暂停，零后台开销
+    document.addEventListener('visibilitychange', () => (document.hidden ? stop() : start()));
+
+    let resizeTimer = 0;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
+        resize();
+        paint(performance.now());
+      }, 120);
+    });
+
+    reduced.addEventListener?.('change', () => {
+      stop();
+      paint(0);
+    });
+  }
+</script>

@@ -1,0 +1,114 @@
+---
+// Hero 右侧"实验室控制台"：用真实站点状态渲染的迷你面板（不是 div 假截图）。
+// 状态文案全部是真实项目事实；数据后续从 lib/data 接管，当前静态声明。
+const modules = [
+  { name: '作品集', desc: 'Umax RAG 已就位', status: '1 件已收录', live: true },
+  { name: '笔记', desc: '日常心得 · 网页内编辑发布', status: '阶段三上线', live: false },
+  { name: '工具台', desc: '效率工具与 AI 热点解读', status: '阶段三上线', live: false },
+  { name: '收藏夹', desc: '常用网站 · skill · 片单', status: '阶段四上线', live: false },
+  { name: '摄影', desc: '相册与瀑布流', status: '素材就绪', live: true },
+];
+---
+
+<div class="console">
+  <div class="console-head">
+    <span>SLIVENNOXLAB · CONSOLE</span>
+    <span>MODULES {modules.length}</span>
+  </div>
+
+  <ul class="console-rows">
+    {
+      modules.map((m) => (
+        <li class="console-row">
+          <div class="console-info">
+            <span class="console-name">{m.name}</span>
+            <span class="console-desc">{m.desc}</span>
+          </div>
+          <span class={`chip ${m.live ? 'chip-live' : 'chip-plan'}`}>{m.status}</span>
+        </li>
+      ))
+    }
+  </ul>
+</div>
+
+<style>
+  .console {
+    background: var(--color-bg-raised);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+  }
+
+  /* 玻璃面板的顶部内高光：边缘折射质感，不加外发光 */
+  .console::before {
+    content: '';
+    display: block;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(237, 234, 247, 0.24), transparent);
+  }
+
+  .console-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-3) var(--space-5);
+    border-bottom: 1px solid var(--color-border);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    color: var(--color-text-tertiary);
+  }
+
+  .console-rows {
+    list-style: none;
+    padding: 0;
+  }
+
+  .console-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-3) var(--space-5);
+  }
+
+  .console-row + .console-row {
+    border-top: 1px solid var(--color-border);
+  }
+
+  .console-info {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .console-name {
+    font-weight: 500;
+    font-size: 0.95rem;
+    line-height: 1.4;
+  }
+
+  .console-desc {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    line-height: 1.4;
+  }
+
+  /* 状态 chip：青 = 实时/已就绪（功能性语义），灰 = 计划中 */
+  .chip {
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--color-border-strong);
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+  }
+
+  .chip-live {
+    color: var(--color-interactive);
+    border-color: rgba(34, 211, 238, 0.4);
+  }
+</style>

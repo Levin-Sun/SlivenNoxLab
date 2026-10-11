@@ -1,0 +1,127 @@
+---
+// Hero 首屏：分栏布局（NovaPulse 手法）+ 紫色光场（Limited 手法）。
+// 纪律：无 eyebrow（craft-floor 禁令）、主标题 ≤2 行、副标题 ≤20 词、
+//       双 CTA 首屏可见、无滚动提示、无装饰状态点。
+import AuroraField from './AuroraField.astro';
+import Console from './Console.astro';
+---
+
+<section class="hero">
+  <AuroraField />
+
+  <div class="container hero-inner">
+    <div class="hero-copy">
+      <h1 class="hero-title">
+        构建我的<span class="hero-accent">数字技术实验室</span>
+      </h1>
+      <p class="hero-sub">个人作品集 / 效率工具台 / 技术自留地</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="/lab/">进入工具台</a>
+        <a class="btn btn-ghost" href="/projects/">查看作品集</a>
+      </div>
+    </div>
+
+    <div class="hero-console">
+      <Console />
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    min-height: 100dvh; /* 视口稳定性：禁用 h-screen，移动端地址栏不跳动 */
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    padding-top: 68px; /* 导航高度让位；内容垂直居中，顶垫不超上限 */
+  }
+
+  .hero-inner {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: clamp(var(--space-8), 5vw, var(--space-16));
+    align-items: center;
+    width: 100%;
+    padding-block: var(--space-10);
+  }
+
+  .hero-copy {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-5);
+  }
+
+  /* 双色标题：关键短语着品牌紫浅调（5.1:1，大字号远超 AA） */
+  .hero-title {
+    font-size: clamp(2.5rem, 1.2rem + 4.2vw, 4.25rem);
+    font-weight: 700;
+    line-height: 1.12;
+    color: var(--color-text);
+  }
+
+  .hero-accent {
+    color: var(--color-accent-soft);
+  }
+
+  .hero-sub {
+    font-size: 1.08rem;
+    color: var(--color-text-secondary);
+    max-width: 42ch;
+  }
+
+  .hero-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+  }
+
+  .hero-console {
+    min-width: 0;
+  }
+
+  /* 入场：唯一的一次编排时刻，随 reduced-motion 全局失效 */
+  .hero-copy > * {
+    animation: hero-rise 0.7s var(--ease-out) backwards;
+  }
+
+  .hero-copy > :nth-child(2) {
+    animation-delay: 0.1s;
+  }
+
+  .hero-copy > :nth-child(3) {
+    animation-delay: 0.2s;
+  }
+
+  .hero-console {
+    animation: hero-rise 0.7s var(--ease-out) 0.32s backwards;
+  }
+
+  @keyframes hero-rise {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+  }
+
+  /* 三级断点塌缩：多列布局必须显式声明 <768px 行为（PLAN.md 4.5） */
+  @media (max-width: 960px) {
+    .hero-inner {
+      grid-template-columns: 1fr;
+      gap: var(--space-10);
+      align-content: center;
+    }
+
+    .hero {
+      min-height: auto;
+      padding-block: calc(68px + var(--space-12)) var(--space-14);
+    }
+
+    .hero-console {
+      max-width: 480px;
+    }
+  }
+</style>

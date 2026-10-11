@@ -1,0 +1,189 @@
+/* 全局样式：重置 + 基础元素 + 通用工具类。Token 一律出自 tokens.css */
+
+*,
+::before,
+::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html {
+  color-scheme: dark;
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+img,
+svg,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* 标题：层级靠字重与字号，CJK 字距不动（craft-floor：tracking 只对拉丁生效） */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* 正文链接 = 交互语义，用青色（品牌紫留给块） */
+prose a,
+.content-link {
+  color: var(--color-interactive);
+  text-underline-offset: 3px;
+}
+
+/* 键盘焦点环：全站统一交互青（craft-floor：焦点环是设计的一部分） */
+:focus-visible {
+  outline: 2px solid var(--color-interactive);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* 浏览器表面主题化（craft-floor：没画的部分也带着设计） */
+::selection {
+  background: rgba(124, 58, 237, 0.45);
+  color: #fff;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2b2344;
+  border: 2px solid var(--color-bg);
+  border-radius: var(--radius-pill);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3a2f5c;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 通用容器：内容主轴 1200px（三级断点基准） */
+.container {
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-inline: clamp(16px, 4vw, 32px);
+}
+
+/* 跳转到主内容（键盘用户） */
+.skip-link {
+  position: fixed;
+  top: -64px;
+  left: 16px;
+  z-index: var(--z-skip);
+  background: var(--color-accent);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: var(--radius-pill);
+  font-size: 0.9rem;
+  transition: top var(--dur-fast) var(--ease-out);
+}
+
+.skip-link:focus {
+  top: 12px;
+}
+
+/* 噪点覆盖层：全站唯一质感层，固定挂载 + 不可交互（PLAN.md 4.1） */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-grain);
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* 按钮：胶囊体系；主按钮白字紫底 5.7:1，幽灵按钮描边 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 26px;
+  border-radius: var(--radius-pill);
+  font-size: 0.95rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn-primary {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--color-accent-soft);
+}
+
+.btn-ghost {
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text);
+}
+
+.btn-ghost:hover {
+  border-color: var(--color-text-tertiary);
+  background: rgba(168, 157, 220, 0.07);
+}
+
+/* 动效总开关：prefers-reduced-motion 下一切动画与平滑滚动直接到终态 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
