@@ -1,12 +1,16 @@
 ---
-// 模块入口 bento：五项五格，非对称跨度（3+3 / 2+2+2），SpotlightCard 聚光交互。
-// 格内用单字排版印章作视觉锚（排版手法，非手绘图标）。
+// 模块入口 bento：五项五格，每格一个内容驱动的微交互（各不相同，不重复堆效果）。
+// 作品集=真实截图缩略卡 | 笔记=打字机行 | 工具台=像素闪烁屏 |
+// 收藏夹=favicon 漂浮群 | 摄影=扇形照片堆。全部零依赖，reduced-motion 静默。
 import SpotlightCard from '../ui/SpotlightCard.astro';
 import Reveal from '../ui/Reveal.astro';
 import SectionHead from '../ui/SectionHead.astro';
 import { modules } from '../../config/home';
+import { favoriteCategories } from '../../lib/data/favorites';
 
 const spans = ['span-3', 'span-3', 'span-2', 'span-2', 'span-2'];
+const websiteFavs = favoriteCategories.find((c) => c.key === 'website')?.items ?? [];
+const noteLines = ['Pagefind 中文搜索接入', 'Content Collections 类型校验', '光场逆向复刻手记'];
 ---
 
 <section class="section container">
@@ -24,6 +28,39 @@ const spans = ['span-3', 'span-3', 'span-2', 'span-2', 'span-2'];
                 <span class="cell-glyph" aria-hidden="true">{m.glyph}</span>
                 <span class={`chip ${m.status.live ? 'chip-live' : 'chip-plan'}`}>{m.status.label}</span>
               </div>
+
+              <div class="cell-stage" aria-hidden="true">
+                {i === 0 && (
+                  <span class="fx-shot">
+                    <img src="/works/umax-rag.png" alt="" width="2560" height="1288" loading="lazy" decoding="async" />
+                  </span>
+                )}
+                {i === 1 && (
+                  <span class="fx-type">
+                    <span class="fx-type-prompt">{">"}</span>
+                    <span class="fx-type-text" data-typing data-lines={JSON.stringify(noteLines)} />
+                    <span class="fx-type-caret" />
+                  </span>
+                )}
+                {i === 2 && <canvas class="fx-pixels" data-pixels width="200" height="90" />}
+                {i === 3 && (
+                  <span class="fx-favs">
+                    {websiteFavs.slice(0, 5).map((f, fi) => (
+                      <span class="fx-fav" style={`--i:${fi}; --r:${((fi % 3) - 1) * 7}deg`}>
+                        <img src={`https://favicon.im/${f.host ?? 'example.com'}?larger=true`} alt="" loading="lazy" decoding="async" />
+                      </span>
+                    ))}
+                  </span>
+                )}
+                {i === 4 && (
+                  <span class="fx-stack">
+                    <img class="ph ph-a" src="https://picsum.photos/seed/nox-bento-a/360/240" alt="" loading="lazy" decoding="async" />
+                    <img class="ph ph-b" src="https://picsum.photos/seed/nox-bento-b/360/240" alt="" loading="lazy" decoding="async" />
+                    <img class="ph ph-c" src="https://picsum.photos/seed/nox-bento-c/360/240" alt="" loading="lazy" decoding="async" />
+                  </span>
+                )}
+              </div>
+
               <div class="cell-bottom">
                 <h3 class="cell-name">{m.name}</h3>
                 <p class="cell-desc">{m.desc}</p>
@@ -62,11 +99,9 @@ const spans = ['span-3', 'span-3', 'span-2', 'span-2', 'span-2'];
   .cell-inner {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    gap: var(--space-8);
     height: 100%;
-    padding: var(--space-5) var(--space-5) var(--space-6);
-    min-height: 180px;
+    padding: var(--space-5) var(--space-5) var(--space-5);
+    min-height: 220px;
   }
 
   .cell-top {
@@ -76,13 +111,23 @@ const spans = ['span-3', 'span-3', 'span-2', 'span-2', 'span-2'];
     gap: var(--space-3);
   }
 
-  /* 排版印章：品牌紫单字，编辑气质的视觉锚 */
   .cell-glyph {
     font-family: var(--font-display);
     font-weight: 700;
     font-size: 2.2rem;
     line-height: 1;
     color: var(--color-accent-soft);
+  }
+
+  /* 微交互舞台：占据中部弹性空间，装饰不挤文字 */
+  .cell-stage {
+    position: relative;
+    flex: 1;
+    min-height: 64px;
+    margin-block: var(--space-4);
+    display: flex;
+    align-items: center;
+    overflow: hidden;
   }
 
   .cell-bottom {
@@ -105,7 +150,7 @@ const spans = ['span-3', 'span-3', 'span-2', 'span-2', 'span-2'];
   .chip {
     font-family: var(--font-mono);
     font-size: 0.72rem;
-    padding: 5px 11px;
+    padding: 4px 11px;
     border-radius: var(--radius-pill);
     border: 1px solid var(--color-border-strong);
     color: var(--color-text-secondary);
@@ -115,6 +160,167 @@ const spans = ['span-3', 'span-3', 'span-2', 'span-2', 'span-2'];
   .chip-live {
     color: var(--color-interactive);
     border-color: rgba(34, 211, 238, 0.4);
+  }
+
+  /* ---- 作品集：真实截图缩略卡，悬浮微倾 ---- */
+  .fx-shot {
+    position: absolute;
+    right: var(--space-2);
+    top: 0;
+    width: min(58%, 300px);
+    rotate: -2deg;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: var(--shadow-pop);
+    transition: rotate 0.6s var(--ease-out), translate 0.6s var(--ease-out);
+  }
+
+  :global(.cell:hover) .fx-shot {
+    rotate: 0deg;
+    translate: 0 -3px;
+  }
+
+  .fx-shot img {
+    width: 100%;
+    display: block;
+    aspect-ratio: 21 / 9;
+    object-fit: cover;
+    /* 内部变焦对准登录卡片区域，避免白底空旷 */
+    object-position: 50% 12%;
+    transform: scale(1.9);
+    transform-origin: 50% 14%;
+  }
+
+  /* ---- 笔记：打字机行 ---- */
+  .fx-type {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .fx-type-prompt {
+    color: var(--color-accent-soft);
+  }
+
+  .fx-type-caret {
+    width: 8px;
+    height: 1.1em;
+    background: var(--color-interactive);
+    animation: caret-blink 1.1s steps(1) infinite;
+  }
+
+  @keyframes caret-blink {
+    50% {
+      opacity: 0;
+    }
+  }
+
+  /* ---- 工具台：像素闪烁屏 ---- */
+  .fx-pixels {
+    width: 100%;
+    height: 90px;
+    image-rendering: pixelated;
+    opacity: 0.85;
+  }
+
+  /* ---- 收藏夹：favicon 漂浮群 ---- */
+  .fx-favs {
+    display: flex;
+    gap: var(--space-4);
+    padding-left: var(--space-2);
+  }
+
+  .fx-fav {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--color-bg-inset);
+    border: 1px solid var(--color-border);
+    display: grid;
+    place-items: center;
+    rotate: var(--r);
+    animation: fav-float 5.5s ease-in-out infinite;
+    animation-delay: calc(var(--i) * -0.9s);
+    transition: rotate 0.5s var(--ease-out);
+  }
+
+  .fx-fav img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+  }
+
+  :global(.cell:hover) .fx-fav {
+    rotate: 0deg;
+  }
+
+  @keyframes fav-float {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    50% {
+      translate: 0 -7px;
+    }
+  }
+
+  /* ---- 摄影：扇形照片堆，悬停展平散开 ---- */
+  .fx-stack {
+    position: relative;
+    display: block;
+    width: 72%;
+    margin-inline: auto;
+    aspect-ratio: 3 / 2;
+  }
+
+  .fx-stack .ph {
+    position: absolute;
+    width: 62%;
+    border-radius: 8px;
+    border: 1px solid var(--color-border-strong);
+    box-shadow: var(--shadow-pop);
+    transition:
+      translate 0.6s var(--ease-out),
+      rotate 0.6s var(--ease-out);
+  }
+
+  .fx-stack .ph-a {
+    left: -4%;
+    top: 8%;
+    rotate: -7deg;
+  }
+
+  .fx-stack .ph-b {
+    left: 20%;
+    top: 0;
+    z-index: 1;
+  }
+
+  .fx-stack .ph-c {
+    left: 44%;
+    top: 10%;
+    rotate: 6deg;
+  }
+
+  :global(.cell:hover) .fx-stack .ph-a {
+    rotate: -3deg;
+    translate: -8% 2px;
+  }
+
+  :global(.cell:hover) .fx-stack .ph-b {
+    translate: 0 -4px;
+  }
+
+  :global(.cell:hover) .fx-stack .ph-c {
+    rotate: 3deg;
+    translate: 8% 2px;
   }
 
   @media (max-width: 960px) {
@@ -127,9 +333,12 @@ const spans = ['span-3', 'span-3', 'span-2', 'span-2', 'span-2'];
       grid-column: span 1;
     }
 
-    /* 第一行两格在窄屏合并为通栏，保持节奏 */
     :global(.bento > .reveal:first-child) {
       grid-column: span 2;
+    }
+
+    .cell-inner {
+      min-height: 200px;
     }
   }
 
@@ -145,7 +354,93 @@ const spans = ['span-3', 'span-3', 'span-2', 'span-2', 'span-2'];
     }
 
     .cell-inner {
-      min-height: 150px;
+      min-height: 180px;
+    }
+
+    .fx-shot {
+      width: 64%;
     }
   }
 </style>
+
+<script>
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+
+  /* 笔记打字机：循环敲出笔记标题，reduced-motion 直接显示第一行 */
+  document.querySelectorAll<HTMLElement>('[data-typing]').forEach((el) => {
+    let lines: string[] = [];
+    try {
+      lines = JSON.parse(el.dataset.lines ?? '[]');
+    } catch {
+      lines = [];
+    }
+    if (!lines.length) return;
+    if (reduced.matches) {
+      el.textContent = lines[0];
+      return;
+    }
+    let li = 0;
+    let ci = 0;
+    let deleting = false;
+    const step = () => {
+      const line = lines[li];
+      ci += deleting ? -1 : 1;
+      el.textContent = line.slice(0, ci);
+      let wait = deleting ? 26 : 64;
+      if (!deleting && ci >= line.length) {
+        wait = 2200;
+        deleting = true;
+      } else if (deleting && ci <= 0) {
+        deleting = false;
+        li = (li + 1) % lines.length;
+        wait = 500;
+      }
+      setTimeout(step, wait);
+    };
+    step();
+  });
+
+  /* 工具台像素闪烁屏：低频随机点亮紫/青像素格，reduced-motion 静态一帧 */
+  document.querySelectorAll<HTMLCanvasElement>('[data-pixels]').forEach((canvas) => {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const COLS = 20;
+    const ROWS = 9;
+    const colors = ['rgba(124, 58, 237, 0.55)', 'rgba(168, 85, 247, 0.4)', 'rgba(34, 211, 238, 0.28)'];
+    const lit: boolean[][] = Array.from({ length: COLS }, () => Array(ROWS).fill(false));
+    const pick = () => Math.floor(Math.random() * COLS);
+
+    const paint = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const cw = canvas.width / COLS;
+      const ch = canvas.height / ROWS;
+      for (let x = 0; x < COLS; x++)
+        for (let y = 0; y < ROWS; y++) {
+          if (!lit[x][y]) continue;
+          ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+          ctx.fillRect(x * cw + 1, y * ch + 1, cw - 2, ch - 2);
+        }
+    };
+
+    if (reduced.matches) {
+      for (let i = 0; i < 14; i++) lit[pick()][Math.floor(Math.random() * ROWS)] = true;
+      paint();
+      return;
+    }
+
+    let last = 0;
+    const tick = (t: number) => {
+      requestAnimationFrame(tick);
+      if (t - last < 240) return; // 低频：约 4 次/秒的节奏感
+      last = t;
+      // 随机翻转若干格，保持约 1/4 亮度
+      for (let i = 0; i < 3; i++) {
+        const x = pick();
+        const y = Math.floor(Math.random() * ROWS);
+        lit[x][y] = Math.random() > 0.4;
+      }
+      paint();
+    };
+    requestAnimationFrame(tick);
+  });
+</script>
