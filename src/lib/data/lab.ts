@@ -16,6 +16,12 @@ export const ownTools: LabTool[] = [
     href: '/lab/hotreads/',
     group: '自研工具',
   },
+  {
+    name: '音乐播放器',
+    desc: 'Web Audio 频谱可视化，列表循环播放',
+    href: '/lab/music/',
+    group: '自研工具',
+  },
 ];
 
 export const linkTools: LabTool[] = favoriteCategories

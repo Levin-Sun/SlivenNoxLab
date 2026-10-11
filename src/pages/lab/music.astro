@@ -1,0 +1,452 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Reveal from '../../components/ui/Reveal.astro';
+import SectionHead from '../../components/ui/SectionHead.astro';
+import { musicTracks } from '../../lib/data/music';
+---
+
+<BaseLayout title="音乐播放器 - SlivenNoxLab 工具台" description="Web Audio 频谱可视化音乐播放器。">
+  <main id="main" class="container">
+    <Reveal>
+      <SectionHead title="音乐播放器" href="/lab/" linkLabel="工具台" />
+    </Reveal>
+
+    <Reveal delay={60}>
+      <div class="player" data-player>
+        <div class="vis-wrap">
+          <canvas class="vis" data-vis></canvas>
+          <div class="vis-idle" data-idle>按下播放，频谱随音乐起舞</div>
+        </div>
+
+        <div class="now">
+          <div class="now-info">
+            <span class="now-title" data-title>未在播放</span>
+            <span class="now-artist" data-artist>从下方列表选一首开始</span>
+          </div>
+          <span class="now-time" data-time>00:00 / 00:00</span>
+        </div>
+
+        <div class="controls">
+          <button class="ctl" data-act="prev" type="button" aria-label="上一首">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h2.4v14H6zM19 5.5v13L9.5 12z" /></svg>
+          </button>
+          <button class="ctl ctl-main" data-act="toggle" type="button" aria-label="播放 / 暂停">
+            <svg class="ic-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" /></svg>
+            <svg class="ic-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.4v14H7zM13.6 5H17v14h-3.4z" /></svg>
+          </button>
+          <button class="ctl" data-act="next" type="button" aria-label="下一首">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.6 5H18v14h-2.4zM5 5.5 14.5 12 5 18.5z" /></svg>
+          </button>
+          <div class="vol">
+            <span class="vol-label">音量</span>
+            <input class="range" data-vol type="range" min="0" max="1" step="0.01" value="0.8" aria-label="音量" />
+          </div>
+        </div>
+
+        <div class="seek-row">
+          <input class="range seek" data-seek type="range" min="0" max="100" step="0.1" value="0" aria-label="播放进度" />
+        </div>
+      </div>
+    </Reveal>
+
+    <Reveal delay={120}>
+      <div class="plist-head">播放列表</div>
+      <ul class="plist" role="list">
+        {
+          musicTracks.map((t, i) => (
+            <li class="prow-wrap">
+              <button class="prow" data-index={i} type="button">
+                <span class="prow-idx">{String(i + 1).padStart(2, '0')}</span>
+                <span class="prow-name">{t.title}</span>
+                <span class="prow-artist">{t.artist}</span>
+                <span class="prow-eq" aria-hidden="true">
+                  <i /><i /><i />
+                </span>
+              </button>
+            </li>
+          ))
+        }
+      </ul>
+    </Reveal>
+
+    <Reveal delay={180}>
+      <p class="music-note">
+        示例曲目为程序合成（<code class="mono-code">scripts/synth-demo-music.py</code>）。
+        换成自己的音乐：音频放入 <code class="mono-code">public/music/</code>，
+        在 <code class="mono-code">src/lib/data/music.ts</code> 加一行。公开站点请只放拥有版权的音频。
+      </p>
+    </Reveal>
+  </main>
+</BaseLayout>
+
+<script>
+  const api = (window as unknown as Record<string, unknown>).NoxAudio as NoxAudio;
+  const player = document.querySelector<HTMLElement>('[data-player]');
+  const vis = player?.querySelector<HTMLCanvasElement>('[data-vis]');
+  const vctx = vis?.getContext('2d');
+  const idleEl = player?.querySelector<HTMLElement>('[data-idle]');
+  const titleEl = player?.querySelector<HTMLElement>('[data-title]');
+  const artistEl = player?.querySelector<HTMLElement>('[data-artist]');
+  const timeEl = player?.querySelector<HTMLElement>('[data-time]');
+  const seekEl = player?.querySelector<HTMLInputElement>('[data-seek]');
+  const volEl = player?.querySelector<HTMLInputElement>('[data-vol]');
+  const mainBtn = player?.querySelector<HTMLButtonElement>('[data-act="toggle"]');
+
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+
+  const fmt = (t: number) => {
+    if (!isFinite(t)) return '00:00';
+    const m = Math.floor(t / 60);
+    const s = Math.floor(t % 60);
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
+  const rows = document.querySelectorAll<HTMLButtonElement>('.prow');
+  rows.forEach((row) => {
+    row.addEventListener('click', () => api.load(Number(row.dataset.index)));
+  });
+
+  player?.querySelector('[data-act="toggle"]')?.addEventListener('click', () => api.toggle());
+  player?.querySelector('[data-act="next"]')?.addEventListener('click', () => api.next());
+  player?.querySelector('[data-act="prev"]')?.addEventListener('click', () => api.prev());
+  volEl?.addEventListener('input', () => api.setVolume(Number(volEl.value)));
+  seekEl?.addEventListener('input', () => {
+    if (api.audio.duration) api.seekTo((Number(seekEl.value) / 100) * api.audio.duration);
+  });
+
+  const sync = () => {
+    const i = api.index;
+    const tr = i >= 0 ? api.tracks[i] : null;
+    titleEl && (titleEl.textContent = tr?.title ?? '未在播放');
+    artistEl && (artistEl.textContent = tr?.artist ?? '从下方列表选一首开始');
+    mainBtn?.classList.toggle('is-playing', api.playing);
+    rows.forEach((r) => r.classList.toggle('is-current', Number(r.dataset.index) === i));
+    if (seekEl && !seekEl.matches(':active')) {
+      seekEl.value = api.audio.duration ? String((api.audio.currentTime / api.audio.duration) * 100) : '0';
+    }
+    if (timeEl) {
+      timeEl.textContent = `${fmt(api.audio.currentTime)} / ${fmt(api.audio.duration)}`;
+    }
+    if (idleEl) idleEl.style.display = api.playing ? 'none' : '';
+  };
+
+  window.addEventListener('noxaudio:state', sync);
+  sync();
+
+  /* 频谱可视化：40 根品牌紫渐变条 */
+  const resize = () => {
+    if (!vis) return;
+    const r = vis.getBoundingClientRect();
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    vis.width = Math.max(2, Math.ceil(r.width * dpr));
+    vis.height = Math.max(2, Math.ceil(r.height * dpr));
+  };
+  resize();
+  let resizeTimer = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(resize, 150);
+  });
+
+  if (vctx && !reduced.matches) {
+    let last = 0;
+    const draw = (t: number) => {
+      requestAnimationFrame(draw);
+      if (t - last < 33) return;
+      last = t;
+      const w = vis.width;
+      const h = vis.height;
+      vctx.clearRect(0, 0, w, h);
+      const freq = api.freq();
+      const bars = 40;
+      const bw = w / bars;
+      for (let i = 0; i < bars; i++) {
+        // 播放中取真实频谱；空闲时给一条呼吸的地基
+        const v = freq ? freq[Math.floor((i / bars) * 96)] / 255 : 0.03 + 0.02 * Math.sin(t / 900 + i);
+        const bh = Math.max(3 * (vis.height / 500), v * h * 0.92);
+        const hueMix = i / bars;
+        vctx.fillStyle = `rgba(${Math.round(124 + hueMix * 44)}, ${Math.round(58 + hueMix * 27)}, 247, ${0.55 + v * 0.45})`;
+        const x = i * bw + bw * 0.18;
+        const bwid = bw * 0.64;
+        const r = Math.min(bwid / 2, 4);
+        vctx.beginPath();
+        vctx.roundRect(x, h - bh, bwid, bh, [r, r, 0, 0]);
+        vctx.fill();
+      }
+    };
+    requestAnimationFrame(draw);
+  } else if (vctx) {
+    // reduced-motion：静态地基
+    const w = vis.width;
+    const h = vis.height;
+    vctx.fillStyle = 'rgba(124, 58, 237, 0.3)';
+    vctx.fillRect(0, h - 4, w, 4);
+  }
+</script>
+
+<style>
+  .player {
+    padding: var(--space-6);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-bg-raised);
+    box-shadow: var(--shadow-card);
+  }
+
+  .vis-wrap {
+    position: relative;
+    border-radius: var(--radius-input);
+    overflow: hidden;
+    background: var(--color-bg-inset);
+    border: 1px solid var(--color-border);
+  }
+
+  .vis {
+    display: block;
+    width: 100%;
+    height: clamp(180px, 30vw, 300px);
+  }
+
+  .vis-idle {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--color-text-tertiary);
+    pointer-events: none;
+  }
+
+  .now {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-top: var(--space-5);
+  }
+
+  .now-info {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .now-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .now-artist {
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+  }
+
+  .now-time {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--color-text-tertiary);
+    white-space: nowrap;
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-top: var(--space-5);
+  }
+
+  .ctl {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    transition: background var(--dur-fast) var(--ease-out);
+  }
+
+  .ctl:hover {
+    background: rgba(168, 157, 220, 0.1);
+  }
+
+  .ctl svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+  }
+
+  .ctl-main {
+    width: 56px;
+    height: 56px;
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: #fff;
+  }
+
+  .ctl-main:hover {
+    background: var(--color-accent-soft);
+    border-color: var(--color-accent-soft);
+  }
+
+  .ctl-main .ic-pause {
+    display: none;
+  }
+
+  .ctl-main.is-playing .ic-play {
+    display: none;
+  }
+
+  .ctl-main.is-playing .ic-pause {
+    display: block;
+  }
+
+  .vol {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-left: auto;
+  }
+
+  .vol-label {
+    font-size: 0.8rem;
+    color: var(--color-text-tertiary);
+  }
+
+  .range {
+    accent-color: var(--color-accent);
+    height: 4px;
+  }
+
+  .seek {
+    width: 100%;
+  }
+
+  .seek-row {
+    margin-top: var(--space-4);
+  }
+
+  .plist-head {
+    margin-top: var(--space-12);
+    margin-bottom: var(--space-4);
+    font-size: 0.9rem;
+    color: var(--color-text-tertiary);
+  }
+
+  .plist {
+    list-style: none;
+    padding: 0;
+    display: grid;
+  }
+
+  .prow {
+    display: grid;
+    grid-template-columns: 3em 1fr auto auto;
+    align-items: center;
+    gap: var(--space-4);
+    width: 100%;
+    padding: var(--space-4) var(--space-2);
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--color-border);
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background var(--dur-fast) var(--ease-out);
+  }
+
+  .prow:hover {
+    background: rgba(168, 157, 220, 0.05);
+  }
+
+  .prow-idx {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--color-text-tertiary);
+  }
+
+  .prow-name {
+    font-weight: 550;
+    font-size: 0.98rem;
+    color: var(--color-text);
+  }
+
+  .prow-artist {
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+  }
+
+  /* 当前播放行的均衡器动画 */
+  .prow-eq {
+    display: none;
+    align-items: flex-end;
+    gap: 3px;
+    height: 14px;
+  }
+
+  .prow.is-current .prow-eq {
+    display: inline-flex;
+  }
+
+  .prow-eq i {
+    width: 3px;
+    background: var(--color-interactive);
+    animation: eq 0.9s ease-in-out infinite;
+  }
+
+  .prow-eq i:nth-child(1) {
+    height: 60%;
+  }
+
+  .prow-eq i:nth-child(2) {
+    height: 100%;
+    animation-delay: 0.2s;
+  }
+
+  .prow-eq i:nth-child(3) {
+    height: 40%;
+    animation-delay: 0.4s;
+  }
+
+  @keyframes eq {
+    0%,
+    100% {
+      transform: scaleY(0.4);
+    }
+    50% {
+      transform: scaleY(1);
+    }
+  }
+
+  .music-note {
+    margin-top: var(--space-10);
+    font-size: 0.85rem;
+    color: var(--color-text-tertiary);
+    line-height: 1.8;
+  }
+
+  .mono-code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: rgba(168, 157, 220, 0.12);
+    color: var(--color-accent-soft);
+  }
+
+  @media (max-width: 640px) {
+    .prow {
+      grid-template-columns: 2.5em 1fr auto;
+    }
+
+    .prow-artist {
+      display: none;
+    }
+
+    .vol {
+      display: none;
+    }
+  }
+</style>
