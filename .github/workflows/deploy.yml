@@ -18,6 +18,8 @@ permissions:
 
 jobs:
   deploy:
+    # SSH Secrets 未配置时优雅跳过（首次推送不报错），配置后自动恢复部署
+    if: ${{ secrets.SSH_HOST != '' && secrets.SSH_USER != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
