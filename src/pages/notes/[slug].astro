@@ -35,6 +35,12 @@ const fmt = (d: Date) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart
       <div class="prose">
         <Content />
       </div>
+
+      <footer class="note-foot">
+        <a class="content-link" href={`/admin/#/collections/notes/entries/${note.id}`}>编辑这篇</a>
+        <span class="foot-sep">·</span>
+        <a class="content-link" href="/notes/">返回列表</a>
+      </footer>
     </article>
   </main>
 </BaseLayout>
@@ -88,5 +94,19 @@ const fmt = (d: Date) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart
   .stage-chip {
     color: var(--color-interactive);
     border-color: rgba(34, 211, 238, 0.4);
+  }
+
+  .note-foot {
+    margin-top: var(--space-12);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    font-size: 0.9rem;
+  }
+
+  .foot-sep {
+    color: var(--color-text-tertiary);
   }
 </style>

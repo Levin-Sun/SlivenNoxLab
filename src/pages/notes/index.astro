@@ -17,7 +17,8 @@ const fmt = (d: Date) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart
 
     <Reveal delay={60}>
       <p class="notes-intro">
-        日常心得与踩坑记录，支持网页内写作发布。碎片形态，积累之后沉淀成结构化知识。
+        日常心得与踩坑记录，支持<a class="content-link" href="/admin/">网页内写作发布</a>。
+        碎片形态，积累之后沉淀成结构化知识。
       </p>
     </Reveal>
 
@@ -47,6 +48,14 @@ const fmt = (d: Date) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart
                     </span>
                   )}
                 </span>
+              </a>
+              <a
+                class="note-edit"
+                href={`/admin/#/collections/notes/entries/${note.id}`}
+                aria-label={`在后台编辑「${note.data.title}」`}
+                title="在后台编辑"
+              >
+                编辑
               </a>
             </li>
           ))
@@ -85,6 +94,12 @@ const fmt = (d: Date) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart
     border-top: 1px solid var(--color-border);
   }
 
+  .note-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+
   .note-link {
     display: grid;
     grid-template-columns: 7.5em 1fr;
@@ -97,6 +112,33 @@ const fmt = (d: Date) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart
 
   .note-link:hover {
     background: rgba(168, 157, 220, 0.05);
+  }
+
+  /* 行内编辑直达：默认低调，悬停浮现 */
+  .note-edit {
+    font-size: 0.82rem;
+    color: var(--color-text-tertiary);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-input);
+    text-decoration: none;
+    opacity: 0;
+    transition:
+      opacity var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out);
+  }
+
+  .note-row:hover .note-edit {
+    opacity: 1;
+  }
+
+  .note-edit:hover {
+    color: var(--color-interactive);
+  }
+
+  @media (pointer: coarse) {
+    .note-edit {
+      opacity: 1;
+    }
   }
 
   .note-date {
