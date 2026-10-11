@@ -55,12 +55,14 @@ import Console from './Console.astro';
     gap: var(--space-5);
   }
 
-  /* 双色标题：关键短语着品牌紫浅调（5.1:1，大字号远超 AA） */
+  /* 双色标题：关键短语着品牌紫浅调（5.1:1，大字号远超 AA）。
+   * 暗色投影：光场亮丝穿过标题时保持可读，视觉上不可见 */
   .hero-title {
     font-size: clamp(2.5rem, 1.2rem + 4.2vw, 4.25rem);
     font-weight: 700;
     line-height: 1.14;
     color: var(--color-text);
+    text-shadow: 0 2px 32px rgba(6, 3, 16, 0.9);
   }
 
   .hero-line {
