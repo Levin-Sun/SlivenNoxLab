@@ -1,0 +1,32 @@
+---
+interface Props {
+  title: string;
+}
+const { title } = Astro.props;
+---
+
+<div class="sec-overline">
+  <h3>{title}</h3>
+</div>
+
+<style>
+  .sec-overline {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+  }
+
+  h3 {
+    font-size: 1.05rem;
+    font-weight: 550;
+    color: var(--color-text-secondary);
+  }
+
+  .sec-overline::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--color-border);
+  }
+</style>

@@ -1,0 +1,193 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SectionHead from '../../components/ui/SectionHead.astro';
+import Reveal from '../../components/ui/Reveal.astro';
+import Search from 'astro-pagefind/components/Search.astro';
+import { listNotes } from '../../lib/data/notes';
+
+const notes = await listNotes();
+const fmt = (d: Date) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+---
+
+<BaseLayout title="技术笔记 - SlivenNoxLab" description="日常心得、踩坑记录与技术探索。">
+  <main id="main" class="container notes-page">
+    <Reveal>
+      <SectionHead title="技术笔记" href="/admin/" linkLabel="内容后台" />
+    </Reveal>
+
+    <Reveal delay={60}>
+      <p class="notes-intro">
+        日常心得与踩坑记录，支持网页内写作发布。碎片形态，积累之后沉淀成结构化知识。
+      </p>
+    </Reveal>
+
+    <Reveal delay={100}>
+      <div class="notes-search">
+        <Search id="notes-search" className="pagefind-ui" uiOptions={{ showImages: false }} />
+      </div>
+    </Reveal>
+
+    <Reveal delay={140}>
+      <ul class="note-list" role="list">
+        {
+          notes.map((note) => (
+            <li class="note-row">
+              <a class="note-link" href={`/notes/${note.id}/`}>
+                <span class="note-date">
+                  {fmt(note.data.pubDate)}
+                </span>
+                <span class="note-body">
+                  <span class="note-title">{note.data.title}</span>
+                  {note.data.description && <span class="note-desc">{note.data.description}</span>}
+                  {note.data.tags.length > 0 && (
+                    <span class="note-tags">
+                      {note.data.tags.map((t) => (
+                        <span class="tag-mini">{t}</span>
+                      ))}
+                    </span>
+                  )}
+                </span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </Reveal>
+
+    {
+      notes.length === 0 && (
+        <p class="notes-empty">还没有笔记。去内容后台写第一篇。</p>
+      )
+    }
+  </main>
+</BaseLayout>
+
+<style>
+  .notes-intro {
+    max-width: 56ch;
+    color: var(--color-text-secondary);
+    line-height: 1.7;
+    margin-bottom: var(--space-6);
+  }
+
+  .notes-search {
+    margin-bottom: var(--space-8);
+    max-width: 620px;
+  }
+
+  .note-list {
+    list-style: none;
+    padding: 0;
+    display: grid;
+  }
+
+  .note-row + .note-row {
+    border-top: 1px solid var(--color-border);
+  }
+
+  .note-link {
+    display: grid;
+    grid-template-columns: 7.5em 1fr;
+    gap: var(--space-4);
+    padding: var(--space-5) var(--space-2);
+    text-decoration: none;
+    border-radius: var(--radius-input);
+    transition: background var(--dur-fast) var(--ease-out);
+  }
+
+  .note-link:hover {
+    background: rgba(168, 157, 220, 0.05);
+  }
+
+  .note-date {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--color-text-tertiary);
+    padding-top: 3px;
+    white-space: nowrap;
+  }
+
+  .note-body {
+    display: grid;
+    gap: var(--space-1);
+    min-width: 0;
+  }
+
+  .note-title {
+    font-weight: 550;
+    font-size: 1.02rem;
+    color: var(--color-text);
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .note-link:hover .note-title {
+    color: var(--color-accent-soft);
+  }
+
+  .note-desc {
+    font-size: 0.87rem;
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+  }
+
+  .note-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-1);
+  }
+
+  .tag-mini {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    padding: 2px 9px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-tertiary);
+  }
+
+  .notes-empty {
+    color: var(--color-text-tertiary);
+    padding: var(--space-8) 0;
+  }
+
+  @media (max-width: 640px) {
+    .note-link {
+      grid-template-columns: 1fr;
+      gap: var(--space-1);
+    }
+  }
+</style>
+
+<style>
+  /* Pagefind UI 换肤：对齐站点 token */
+  .notes-search .pagefind-ui {
+    --pagefind-ui-scale: 0.9;
+    --pagefind-ui-primary: var(--color-accent-soft);
+    --pagefind-ui-text: var(--color-text);
+    --pagefind-ui-background: var(--color-bg-raised);
+    --pagefind-ui-border: var(--color-border);
+    --pagefind-ui-tag: rgba(168, 157, 220, 0.12);
+    --pagefind-ui-border-width: 1px;
+    --pagefind-ui-border-radius: 12px;
+    --pagefind-ui-font: inherit;
+  }
+
+  .notes-search .pagefind-ui .pagefind-ui__search-input {
+    background: var(--color-bg-raised);
+  }
+
+  .notes-search .pagefind-ui .pagefind-ui__search-input:focus {
+    outline: 2px solid var(--color-interactive);
+    outline-offset: 2px;
+  }
+
+  .notes-search .pagefind-ui .pagefind-ui__result-link {
+    color: var(--color-text);
+  }
+
+  .notes-search .pagefind-ui .pagefind-ui__result-excerpt mark {
+    background: rgba(124, 58, 237, 0.35);
+    color: var(--color-text);
+  }
+</style>

@@ -124,6 +124,115 @@ prose a,
   margin-top: var(--space-20);
 }
 
+/* 长文容器：正文测宽对齐 65-75ch */
+.container-narrow {
+  max-width: 780px;
+}
+
+/* Markdown 正文排版（笔记与作品详情） */
+.prose {
+  color: var(--color-text);
+  font-size: 1rem;
+  line-height: 1.85;
+}
+
+.prose > * + * {
+  margin-top: var(--space-5);
+}
+
+.prose h2,
+.prose h3,
+.prose h4 {
+  margin-top: var(--space-10);
+  font-size: 1.3rem;
+  scroll-margin-top: 90px;
+}
+
+.prose h3 {
+  font-size: 1.12rem;
+}
+
+.prose p,
+.prose ul,
+.prose ol {
+  color: var(--color-text-secondary);
+  max-width: 72ch;
+}
+
+.prose strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.prose a {
+  color: var(--color-interactive);
+  text-decoration: underline;
+  text-decoration-color: rgba(34, 211, 238, 0.45);
+  text-underline-offset: 4px;
+}
+
+.prose ul,
+.prose ol {
+  padding-left: var(--space-5);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.prose ul {
+  list-style: disc;
+}
+
+.prose ol {
+  list-style: decimal;
+}
+
+.prose li::marker {
+  color: var(--color-text-tertiary);
+}
+
+/* 行内代码 */
+.prose :not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(168, 157, 220, 0.12);
+  color: var(--color-accent-soft);
+}
+
+/* 代码块：Shiki 输出包裹一层圆角容器 */
+.prose pre {
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-border);
+  overflow-x: auto;
+  font-size: 0.86rem;
+  line-height: 1.7;
+}
+
+.prose pre code {
+  font-family: var(--font-mono);
+  background: none;
+  padding: 0;
+}
+
+.prose img {
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-border);
+}
+
+.prose blockquote {
+  border-left: 1px solid var(--color-accent);
+  padding-left: var(--space-4);
+  color: var(--color-text-secondary);
+}
+
+.prose hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin-block: var(--space-8);
+}
+
 /* 跳转到主内容（键盘用户） */
 .skip-link {
   position: fixed;

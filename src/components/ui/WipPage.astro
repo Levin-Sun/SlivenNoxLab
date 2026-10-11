@@ -1,0 +1,35 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Reveal from './Reveal.astro';
+import SectionHead from './SectionHead.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  heading: string;
+  note: string;
+}
+const { title, description, heading, note } = Astro.props;
+---
+
+<BaseLayout title={`${title} - SlivenNoxLab`} description={description}>
+  <main id="main" class="container container-narrow">
+    <Reveal>
+      <SectionHead title={heading} />
+    </Reveal>
+    <Reveal delay={60}>
+      <p class="wip-note">{note}</p>
+    </Reveal>
+    <Reveal delay={120}>
+      <a class="content-link" href="/">← 回到首页</a>
+    </Reveal>
+  </main>
+</BaseLayout>
+
+<style>
+  .wip-note {
+    color: var(--color-text-secondary);
+    line-height: 1.8;
+    margin-bottom: var(--space-8);
+  }
+</style>

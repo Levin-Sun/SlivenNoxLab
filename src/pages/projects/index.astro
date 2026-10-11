@@ -1,0 +1,270 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SectionHead from '../../components/ui/SectionHead.astro';
+import Reveal from '../../components/ui/Reveal.astro';
+import { listProjects, projectCategories } from '../../lib/data/projects';
+
+const projects = await listProjects();
+const fmt = (d: Date) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}`;
+---
+
+<BaseLayout title="作品集 - SlivenNoxLab" description="开发项目、设计与摄影作品。">
+  <main id="main" class="container projects-page">
+    <Reveal>
+      <SectionHead title="作品集" />
+    </Reveal>
+
+    <Reveal delay={60}>
+      <div class="filter-row" role="group" aria-label="作品分类筛选">
+        {
+          projectCategories.map((c, i) => (
+            <button
+              class={`filter-chip ${i === 0 ? 'is-active' : ''}`}
+              type="button"
+              data-filter={c.key}
+              aria-pressed={i === 0 ? 'true' : 'false'}
+            >
+              {c.label}
+            </button>
+          ))
+        }
+      </div>
+    </Reveal>
+
+    <div class="work-grid">
+      {
+        projects.map((p, i) => (
+          <Reveal delay={i * 70} class="work-card-wrap">
+            <article class="work-card" data-category={p.data.category}>
+              <a class="work-card-media" href={`/projects/${p.id}/`} tabindex="-1" aria-hidden="true">
+                {p.data.cover ? (
+                  <img src={p.data.cover} alt={p.data.title} width="2560" height="1288" loading="lazy" decoding="async" />
+                ) : (
+                  <div class="work-card-cover-fallback">{p.data.title.slice(0, 1)}</div>
+                )}
+              </a>
+              <div class="work-card-body">
+                <div class="work-card-head">
+                  <h3 class="work-card-title">
+                    <a href={`/projects/${p.id}/`}>{p.data.title}</a>
+                  </h3>
+                  <span class="work-card-date">{fmt(p.data.pubDate)}</span>
+                </div>
+                <p class="work-card-desc">{p.data.description}</p>
+                <div class="work-card-foot">
+                  <div class="work-card-tech">
+                    {p.data.tech.map((t) => (
+                      <span class="tag-mini">{t}</span>
+                    ))}
+                  </div>
+                  <div class="work-card-links">
+                    {p.data.demoUrl && (
+                      <a class="content-link" href={p.data.demoUrl} target="_blank" rel="noopener">
+                        Demo
+                      </a>
+                    )}
+                    {p.data.repoUrl && (
+                      <a class="content-link" href={p.data.repoUrl} target="_blank" rel="noopener">
+                        源码
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </article>
+          </Reveal>
+        ))
+      }
+    </div>
+
+    {
+      projects.length === 0 && <p class="projects-empty">作品整理中。</p>
+    }
+  </main>
+</BaseLayout>
+
+<script>
+  // 分类筛选：纯客户端，data-category 匹配
+  const chips = document.querySelectorAll<HTMLButtonElement>('.filter-chip');
+  const cards = document.querySelectorAll<HTMLElement>('.work-card-wrap');
+  chips.forEach((chip) => {
+    chip.addEventListener('click', () => {
+      chips.forEach((c) => {
+        c.classList.toggle('is-active', c === chip);
+        c.setAttribute('aria-pressed', String(c === chip));
+      });
+      const key = chip.dataset.filter;
+      cards.forEach((card) => {
+        const show = key === 'all' || card.querySelector('.work-card')?.getAttribute('data-category') === key;
+        (card as HTMLElement).style.display = show ? '' : 'none';
+      });
+    });
+  });
+</script>
+
+<style>
+  .filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-8);
+  }
+
+  .filter-chip {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    padding: 7px 16px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    transition:
+      color var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out),
+      background var(--dur-fast) var(--ease-out);
+  }
+
+  .filter-chip:hover {
+    color: var(--color-text);
+    border-color: var(--color-border-strong);
+  }
+
+  .filter-chip.is-active {
+    color: #fff;
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+
+  .work-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-6);
+  }
+
+  .work-card-wrap {
+    display: grid;
+  }
+
+  .work-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--color-bg-raised);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    transition: border-color var(--dur-fast) var(--ease-out);
+  }
+
+  .work-card:hover {
+    border-color: var(--color-border-strong);
+  }
+
+  .work-card-media {
+    display: block;
+    overflow: hidden;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .work-card-media img {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    object-position: 50% 22%;
+    transition: transform 0.7s var(--ease-out);
+  }
+
+  .work-card:hover .work-card-media img {
+    transform: scale(1.02);
+  }
+
+  .work-card-cover-fallback {
+    aspect-ratio: 16 / 9;
+    display: grid;
+    place-items: center;
+    font-family: var(--font-display);
+    font-size: 3rem;
+    color: var(--color-accent-soft);
+    background: var(--color-accent-dim);
+  }
+
+  .work-card-body {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-5);
+  }
+
+  .work-card-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .work-card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  .work-card-title a {
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .work-card-title a:hover {
+    color: var(--color-accent-soft);
+  }
+
+  .work-card-date {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--color-text-tertiary);
+  }
+
+  .work-card-desc {
+    font-size: 0.88rem;
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+  }
+
+  .work-card-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-top: auto;
+  }
+
+  .work-card-tech {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .tag-mini {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    padding: 2px 9px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-tertiary);
+  }
+
+  .work-card-links {
+    display: flex;
+    gap: var(--space-4);
+  }
+
+  .work-card-links .content-link {
+    font-size: 0.85rem;
+  }
+
+  .projects-empty {
+    color: var(--color-text-tertiary);
+  }
+
+  @media (max-width: 768px) {
+    .work-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -1,0 +1,72 @@
+# Decap CMS 配置：网页内编辑发布
+# 发布动线：后台保存 → commit 到 GitHub 仓库 → CI 构建上线
+#
+# 首次启用需要两步（一次性）：
+# 1. GitHub → Settings → Developer settings → OAuth Apps → New OAuth App
+#    - Homepage URL: https://umax.dpdns.org
+#    - Authorization callback URL: https://umax.dpdns.org/admin/
+#    创建后把 Client ID 填到下面的 app_id
+# 2. 本地预览编辑无需 OAuth：npm run build && npx decap-server，然后访问 /admin/
+#
+# 改完这份配置后 CMS 有缓存，强刷一次生效。
+
+backend:
+  name: github
+  repo: Levin-Sun/slivennoxlab
+  branch: main
+  auth_type: pkce
+  app_id: REPLACE_WITH_GITHUB_OAUTH_APP_CLIENT_ID
+local_backend: true
+
+publish_mode: simple
+media_folder: public/uploads
+public_path: /uploads
+
+locale: zh_Hans
+
+collections:
+  - name: notes
+    label: 技术笔记
+    label_singular: 笔记
+    folder: src/content/notes
+    slug: '{{year}}-{{month}}-{{day}}-{{slug}}'
+    create: true
+    sortable_fields: [pubDate, title]
+    editor:
+      preview: false
+    fields:
+      - { name: title, label: 标题, widget: string }
+      - { name: description, label: 摘要, widget: text, required: false }
+      - { name: pubDate, label: 发布日期, widget: datetime, format: 'YYYY-MM-DD' }
+      - { name: tags, label: 标签, widget: list, required: false, default: [] }
+      - name: stage
+        label: 成熟度
+        widget: select
+        options: [{ label: 幼苗, value: seedling }, { label: 常青, value: evergreen }]
+        default: seedling
+        required: false
+      - { name: body, label: 正文, widget: markdown }
+
+  - name: projects
+    label: 作品集
+    label_singular: 作品
+    folder: src/content/projects
+    slug: '{{slug}}'
+    create: true
+    sortable_fields: [pubDate, title]
+    editor:
+      preview: false
+    fields:
+      - { name: title, label: 名称, widget: string }
+      - { name: description, label: 一句话介绍, widget: text }
+      - { name: pubDate, label: 发布日期, widget: datetime, format: 'YYYY-MM-DD' }
+      - { name: cover, label: 封面图, widget: image, required: false }
+      - { name: tech, label: 技术栈, widget: list, required: false, default: [] }
+      - name: category
+        label: 分类
+        widget: select
+        options: [{ label: 开发, value: dev }, { label: 设计, value: design }, { label: 摄影, value: photo }]
+        default: dev
+      - { name: demoUrl, label: Demo 地址, widget: string, required: false }
+      - { name: repoUrl, label: 源码地址, widget: string, required: false }
+      - { name: body, label:详细介绍, widget: markdown, required: false }

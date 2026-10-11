@@ -1,0 +1,131 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SectionHead from '../../components/ui/SectionHead.astro';
+import Reveal from '../../components/ui/Reveal.astro';
+import SpotlightCard from '../../components/ui/SpotlightCard.astro';
+import SectionHeadOverline from '../../components/ui/SectionHeadOverline.astro';
+import { labTools } from '../../lib/data/lab';
+
+const own = labTools.filter((t) => t.group === '自研工具');
+const links = labTools.filter((t) => t.group === '收藏跳转');
+---
+
+<BaseLayout title="工具台 - SlivenNoxLab" description="自研效率工具与常用工具收藏。">
+  <main id="main" class="container">
+    <Reveal>
+      <SectionHead title="工具台" />
+    </Reveal>
+
+    <Reveal delay={60}>
+      <SectionHeadOverline title="自研工具" />
+    </Reveal>
+    <div class="lab-grid own-grid">
+      {
+        own.map((t, i) => (
+          <Reveal delay={i * 70}>
+            <SpotlightCard href={t.href} tone="accent" class="lab-own-card">
+              <div class="lab-own-inner">
+                <span class="lab-own-name">{t.name}</span>
+                <span class="lab-own-desc">{t.desc}</span>
+                <span class="chip-live">进入</span>
+              </div>
+            </SpotlightCard>
+          </Reveal>
+        ))
+      }
+    </div>
+
+    <Reveal delay={100}>
+      <SectionHeadOverline title="收藏跳转" />
+    </Reveal>
+    <div class="lab-grid link-grid">
+      {
+        links.map((t, i) => (
+          <Reveal delay={i * 40}>
+            <SpotlightCard href={t.href}>
+              <div class="lab-link-inner">
+                <span class="lab-link-name">{t.name}</span>
+                <span class="lab-link-desc">{t.desc}</span>
+                <span class="lab-link-host">{t.host}</span>
+              </div>
+            </SpotlightCard>
+          </Reveal>
+        ))
+      }
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .lab-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+    margin-bottom: var(--space-14);
+  }
+
+  .lab-grid > :global(.reveal) {
+    display: grid;
+  }
+
+  .lab-own-inner,
+  .lab-link-inner {
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-5);
+    height: 100%;
+  }
+
+  .lab-own-name {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .lab-own-desc {
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+  }
+
+  .chip-live {
+    margin-top: var(--space-3);
+    justify-self: start;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 4px 12px;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(34, 211, 238, 0.4);
+    color: var(--color-interactive);
+  }
+
+  .lab-link-name {
+    font-weight: 550;
+    font-size: 0.95rem;
+    color: var(--color-text);
+  }
+
+  .lab-link-desc {
+    font-size: 0.83rem;
+    color: var(--color-text-secondary);
+  }
+
+  .lab-link-host {
+    margin-top: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--color-text-tertiary);
+  }
+
+  @media (max-width: 960px) {
+    .lab-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .lab-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

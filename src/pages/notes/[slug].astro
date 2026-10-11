@@ -1,0 +1,92 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { listNotes, renderNote } from '../../lib/data/notes';
+
+export async function getStaticPaths() {
+  const notes = await listNotes();
+  return notes.map((note) => ({ params: { slug: note.id }, props: { note } }));
+}
+
+const { note } = Astro.props;
+const { Content } = await renderNote(note);
+const fmt = (d: Date) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+---
+
+<BaseLayout title={`${note.data.title} - SlivenNoxLab`} description={note.data.description ?? note.data.title}>
+  <main id="main" class="container container-narrow">
+    <a class="back-link content-link" href="/notes/">← 全部笔记</a>
+
+    <article class="note-article">
+      <header class="note-header">
+        <h1 class="note-title">{note.data.title}</h1>
+        <div class="note-meta">
+          <span class="note-date">{fmt(note.data.pubDate)}</span>
+          {
+            note.data.stage === 'evergreen' && <span class="stage-chip">常青</span>
+          }
+          {
+            note.data.tags.map((t) => (
+              <span class="tag-mini">{t}</span>
+            ))
+          }
+        </div>
+      </header>
+
+      <div class="prose">
+        <Content />
+      </div>
+    </article>
+  </main>
+</BaseLayout>
+
+<style>
+  .back-link {
+    display: inline-block;
+    margin: var(--space-10) 0 var(--space-8);
+    font-size: 0.9rem;
+  }
+
+  .note-header {
+    display: grid;
+    gap: var(--space-4);
+    margin-bottom: var(--space-8);
+    padding-bottom: var(--space-6);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .note-title {
+    font-size: clamp(1.7rem, 1.2rem + 1.8vw, 2.4rem);
+    line-height: 1.25;
+    color: var(--color-text);
+    text-wrap: balance;
+  }
+
+  .note-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .note-date {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--color-text-tertiary);
+    margin-right: var(--space-2);
+  }
+
+  .tag-mini,
+  .stage-chip {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-tertiary);
+  }
+
+  .stage-chip {
+    color: var(--color-interactive);
+    border-color: rgba(34, 211, 238, 0.4);
+  }
+</style>

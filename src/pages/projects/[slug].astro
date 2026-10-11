@@ -1,0 +1,126 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { listProjects, renderProject } from '../../lib/data/projects';
+
+export async function getStaticPaths() {
+  const projects = await listProjects();
+  return projects.map((p) => ({ params: { slug: p.id }, props: { project: p } }));
+}
+
+const { project } = Astro.props;
+const { Content } = await renderProject(project);
+const fmt = (d: Date) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+const categoryLabel = { dev: '开发', design: '设计', photo: '摄影' }[project.data.category];
+---
+
+<BaseLayout title={`${project.data.title} - SlivenNoxLab 作品集`} description={project.data.description}>
+  <main id="main" class="container container-narrow">
+    <a class="back-link content-link" href="/projects/">← 全部作品</a>
+
+    <article>
+      <header class="p-header">
+        <h1 class="p-title">{project.data.title}</h1>
+        <div class="p-meta">
+          <span class="p-meta-item">{categoryLabel}</span>
+          <span class="p-meta-item">{fmt(project.data.pubDate)}</span>
+          {
+            project.data.demoUrl && (
+              <a class="content-link" href={project.data.demoUrl} target="_blank" rel="noopener">
+                访问 Demo
+              </a>
+            )
+          }
+          {
+            project.data.repoUrl && (
+              <a class="content-link" href={project.data.repoUrl} target="_blank" rel="noopener">
+                查看源码
+              </a>
+            )
+          }
+        </div>
+      </header>
+
+      {
+        project.data.cover && (
+          <div class="p-cover">
+            <img src={project.data.cover} alt={`${project.data.title} 封面`} width="2560" height="1288" loading="eager" decoding="async" />
+          </div>
+        )
+      }
+
+      {
+        project.data.tech.length > 0 && (
+          <div class="p-tech">
+            {project.data.tech.map((t) => (
+              <span class="tag-mini">{t}</span>
+            ))}
+          </div>
+        )
+      }
+
+      <div class="prose">
+        <Content />
+      </div>
+    </article>
+  </main>
+</BaseLayout>
+
+<style>
+  .back-link {
+    display: inline-block;
+    margin: var(--space-10) 0 var(--space-8);
+    font-size: 0.9rem;
+  }
+
+  .p-header {
+    display: grid;
+    gap: var(--space-4);
+    margin-bottom: var(--space-8);
+  }
+
+  .p-title {
+    font-size: clamp(1.8rem, 1.2rem + 2vw, 2.6rem);
+    color: var(--color-text);
+  }
+
+  .p-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--color-text-tertiary);
+  }
+
+  .p-cover {
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    margin-bottom: var(--space-6);
+  }
+
+  .p-cover img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 2 / 1;
+    object-fit: cover;
+    object-position: 50% 22%;
+  }
+
+  .p-tech {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-8);
+  }
+
+  .tag-mini {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    padding: 4px 12px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+  }
+</style>
