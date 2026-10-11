@@ -235,12 +235,17 @@ void main(){
       const uTime = gl.getUniformLocation(prog, 'uTime');
       const uMouse = gl.getUniformLocation(prog, 'uMouse');
 
+      // 先亮出 canvas 再量尺寸：设置变体前 canvas 是 display:none，
+      // 隐藏元素的 clientWidth 恒为 0，会把画布退化成 2×2（全屏拉伸成糊状渐变）。
+      // 尺寸取自根容器（position:absolute inset:0，始终有布局）。
+      root.dataset.variant = 'gl';
+
       // 着色器含 2×25 格 voronoi，60% 分辨率渲染在观感与帧率间取平衡
       const isSmall = matchMedia('(max-width: 768px)').matches;
       const scale = isSmall ? 0.4 : 0.6;
       const resize = () => {
-        canvas.width = Math.max(2, Math.ceil(canvas.clientWidth * scale));
-        canvas.height = Math.max(2, Math.ceil(canvas.clientHeight * scale));
+        canvas.width = Math.max(2, Math.ceil(root.clientWidth * scale));
+        canvas.height = Math.max(2, Math.ceil(root.clientHeight * scale));
         gl.viewport(0, 0, canvas.width, canvas.height);
       };
       resize();
@@ -253,12 +258,14 @@ void main(){
       };
 
       let resizeTimer = 0;
-      window.addEventListener('resize', () => {
+      const requestResize = () => {
         clearTimeout(resizeTimer);
         resizeTimer = window.setTimeout(resize, 120);
-      });
+      };
+      window.addEventListener('resize', requestResize);
+      // 根容器尺寸变化的权威信号（含布局晚于脚本执行的场合）
+      new ResizeObserver(requestResize).observe(root);
 
-      root.dataset.variant = 'gl';
       if (reduced.matches) {
         paint(40000);
         return true;
@@ -275,9 +282,11 @@ void main(){
       const ctx = canvas?.getContext('2d');
       if (!canvas || !ctx) return false;
 
+      root.dataset.variant = '2d';
+
       const resize = () => {
-        canvas.width = Math.max(2, Math.ceil(canvas.clientWidth * 0.5));
-        canvas.height = Math.max(2, Math.ceil(canvas.clientHeight * 0.5));
+        canvas.width = Math.max(2, Math.ceil(root.clientWidth * 0.5));
+        canvas.height = Math.max(2, Math.ceil(root.clientHeight * 0.5));
       };
       resize();
 
@@ -348,7 +357,6 @@ void main(){
         }, 120);
       });
 
-      root.dataset.variant = '2d';
       paint(0);
       if (!reduced.matches) makeLoop((t) => paint(t), 30);
       return true;
