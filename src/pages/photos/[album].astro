@@ -97,10 +97,10 @@ const nextAlbum = albumIndex < albums.length - 1 ? albums[albumIndex + 1] : albu
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4L12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5z" /></svg>
     </button>
     <button class="lb-btn lb-arrow lb-prev" data-lb-prev type="button" aria-label="上一张">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.6 5H18v14h-2.4zM5 5.5 14.5 12 5 18.5z" /></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h2.4v14H6zM19 5.5 9.5 12 19 18.5z" /></svg>
     </button>
     <button class="lb-btn lb-arrow lb-next" data-lb-next type="button" aria-label="下一张">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h2.4v14H6zM19 5.5 9.5 12 19 18.5z" /></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.6 5H18v14h-2.4zM5 5.5 14.5 12 5 18.5z" /></svg>
     </button>
   </div>
 </BaseLayout>
@@ -292,6 +292,25 @@ const nextAlbum = albumIndex < albums.length - 1 ? albums[albumIndex + 1] : albu
     box-shadow: 0 40px 120px rgba(0, 0, 0, 0.7);
     display: block;
     margin-inline: auto;
+    cursor: zoom-in;
+    transition: transform 0.45s var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+  }
+
+  .lb-img:hover {
+    transform: scale(1.015);
+    border-color: var(--color-accent-soft);
+  }
+
+  /* 无操作时控件淡出，纯看图模式；鼠标移动恢复 */
+  .lb-idle .lb-btn,
+  .lb-idle .lb-caption {
+    opacity: 0.12;
+    pointer-events: none;
+  }
+
+  .lb-btn,
+  .lb-caption {
+    transition: opacity 0.45s var(--ease-out), background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
   }
 
   .lb-caption {
@@ -444,5 +463,17 @@ const nextAlbum = albumIndex < albums.length - 1 ? albums[albumIndex + 1] : albu
       const dx = e.clientX - startX;
       if (Math.abs(dx) > 48) step(dx > 0 ? -1 : 1);
     });
+
+    // 无操作 2.4s 控件淡出（电影模式），鼠标移动/翻张即恢复
+    let idleTimer = 0;
+    const wake = () => {
+      box.classList.remove('lb-idle');
+      clearTimeout(idleTimer);
+      idleTimer = window.setTimeout(() => box.classList.add('lb-idle'), 2400);
+    };
+    box.addEventListener('pointermove', wake);
+    box.addEventListener('pointerdown', wake);
+    box.addEventListener('keydown', wake);
+    wake();
   });
 </script>
