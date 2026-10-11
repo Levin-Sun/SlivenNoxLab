@@ -14,3 +14,6 @@ Thumbs.db
 
 # 摄影原片（DNG/未压缩素材不入库，Web 版走 src/assets/photos/）
 photos/
+
+# 临时诊断文件
+.tmp-*
