@@ -151,7 +151,9 @@ Astro API Routes / Node+Express、SQLite/PostgreSQL + Prisma、Decap CMS、JWT�
 
 ## 三、分阶段执行 Roadmap 【修订：内容微调，节奏不变】
 
-### 阶段一：项目骨架与视觉基底（1-2 天）
+### 阶段一：项目骨架与视觉基底（1-2 天）【已完成 2026-10-12】
+
+> 实施记录：Astro 6.4.8；token 全量落地并逐色实测对比度；光场 A/B 双方案（`?aurora=css` 切换对比）；导航/页脚/Hero 控制台/噪点/reduced-motion 全部就位；impeccable detect 0 发现；桌面 1440 / 移动 390 双端目检通过。
 
 1. 初始化 Astro 6 项目 + 分层目录结构
 2. **设计 token 落地**：4.1-4.5 全部规范转成 CSS 变量 + token 注释（色彩纪律、字体栈、圆角体系、间距尺度、z-index 分层表）

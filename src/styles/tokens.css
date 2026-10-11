@@ -36,12 +36,12 @@
   --shadow-pop: 0 8px 24px rgba(3, 0, 10, 0.4);
 
   /* ---- 字体栈 ----
-   * 拉丁标题走 Space Grotesk（自托管，fontsource 变量字体）；
-   * 等宽 JetBrains Mono 只用于代码/数据/元信息行；
-   * 中文走系统栈（CJK 网络字体 5-10MB，个人站不值得，PLAN.md 4.2 已定）。
-   * CJK 显示字体的层级靠字重与字号表达，不靠字距。 */
-  --font-display: 'Space Grotesk Variable', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
-  --font-sans: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+   * 拉丁标题走 Space Grotesk（自托管变量字体）；
+   * 中文走 Noto Sans SC 变量字体（unicode-range 分片自托管，只加载用到的字符分片，
+   * 摆脱微软雅黑的"资讯站"质感；回退系统栈兜底）；
+   * 等宽 JetBrains Mono 只用于代码/数据/元信息行。 */
+  --font-display: 'Space Grotesk Variable', 'Noto Sans SC Variable', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-sans: 'Noto Sans SC Variable', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, 'Cascadia Mono', monospace;
 
   /* ---- 圆角体系：圆角属于界面壳，方角属于内容物（PLAN.md 4.5） ---- */

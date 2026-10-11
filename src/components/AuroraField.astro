@@ -1,12 +1,15 @@
 ---
 // Hero 紫色光场 —— 全站唯一的氛围动效（PLAN.md 4.1 氛围光效预算）
-// 双方案对比：默认 Canvas 等离子（方案 A），URL 加 ?aurora=css 切换纯 CSS 渐变（方案 B）。
-// 无 JS 时 CSS 静态层兜底；prefers-reduced-motion 时画布只渲染一帧静态光。
+// 三层降级：WebGL 极光着色器（可交互：鼠标视差 + 指针辉光跟随）
+//        → Canvas 2D 光斑（同样响应鼠标）→ 纯 CSS 渐变（无 JS 静态兜底）
+// 强制切换：?aurora=css | ?aurora=2d
+// 纪律不变：文案区避让、大面积深黑基底、光斑只用品牌紫两族色相。
 ---
 
-<div class="aurora" data-variant="canvas" aria-hidden="true">
+<div class="aurora" data-variant="css" aria-hidden="true">
   <div class="aurora-css"></div>
-  <canvas class="aurora-canvas"></canvas>
+  <canvas class="aurora-2d"></canvas>
+  <canvas class="aurora-gl"></canvas>
 </div>
 
 <style>
@@ -17,7 +20,20 @@
     pointer-events: none;
   }
 
-  /* 方案 B：纯 CSS 三层径向渐变漂移（零 JS 兜底），透明度与方案 A 同纪律 */
+  .aurora canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+  }
+
+  .aurora[data-variant='gl'] .aurora-gl,
+  .aurora[data-variant='2d'] .aurora-2d {
+    display: block;
+  }
+
+  /* 纯 CSS 渐变层：仅在 css 变体下显示（也是 JS 失效时的默认层） */
   .aurora-css {
     position: absolute;
     inset: -20%;
@@ -29,20 +45,8 @@
     animation: aurora-drift 26s ease-in-out infinite alternate;
   }
 
-  .aurora[data-variant='canvas'] .aurora-css {
-    animation: none;
-  }
-
-  .aurora-canvas {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
+  .aurora:not([data-variant='css']) .aurora-css {
     display: none;
-  }
-
-  .aurora[data-variant='canvas'] .aurora-canvas {
-    display: block;
   }
 
   @keyframes aurora-drift {
@@ -56,92 +60,228 @@
   const root = document.querySelector<HTMLElement>('.aurora');
 
   if (root) {
-    // 方案切换：?aurora=css 使用纯 CSS 渐变，便于 A/B 对比
-    if (new URLSearchParams(location.search).get('aurora') === 'css') {
-      root.dataset.variant = 'css';
-    }
-
-    const canvas = root.querySelector<HTMLCanvasElement>('.aurora-canvas');
-    const ctx = canvas?.getContext('2d');
     const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+    const forced = new URLSearchParams(location.search).get('aurora');
 
-    // 低分辨率画布 + 浏览器放大 = 天然的柔和光斑，逐帧成本极低
-    // 光斑只用品牌紫两族色相（256-305），青色不进光场（功能性颜色纪律）。
-    // 透明度压低 + 光斑推向边缘：大面积基底保持深黑，光只做氛围不做主角
-    const blobs = [
-      { x: 0.16, y: 0.12, r: 0.44, h: 268, a: 0.3, px: 0.00013, py: 0.00009, ph: 0.00004 },
-      { x: 0.68, y: 0.2, r: 0.4, h: 292, a: 0.26, px: 0.00011, py: 0.00012, ph: 0.00005 },
-      { x: 0.55, y: 0.88, r: 0.5, h: 256, a: 0.24, px: 0.00007, py: 0.00011, ph: 0.00003 },
-      { x: 0.9, y: 0.55, r: 0.3, h: 305, a: 0.18, px: 0.00014, py: 0.00008, ph: 0.00006 },
-    ];
+    /* ------------------------------------------------------------------ */
+    /* 公共：指针跟踪（平滑跟随）与生命周期                                  */
+    /* ------------------------------------------------------------------ */
+    const pointer = { x: 0.72, y: 0.3, tx: 0.72, ty: 0.3 };
+    const onPointer = (e: PointerEvent) => {
+      pointer.tx = e.clientX / innerWidth;
+      pointer.ty = 1 - e.clientY / innerHeight;
+    };
+    window.addEventListener('pointermove', onPointer, { passive: true });
 
-    let W = 0;
-    let H = 0;
-    let last = 0;
-    let raf = 0;
-    let running = false;
-
-    const resize = () => {
-      W = Math.max(2, Math.ceil(canvas.clientWidth / 8));
-      H = Math.max(2, Math.ceil(canvas.clientHeight / 8));
-      canvas.width = W;
-      canvas.height = H;
+    const makeLoop = (paint: (t: number) => void, fps = 30) => {
+      let raf = 0;
+      let last = 0;
+      let running = false;
+      const start = () => {
+        if (running || reduced.matches) return;
+        running = true;
+        raf = requestAnimationFrame(loop);
+      };
+      const stop = () => {
+        running = false;
+        cancelAnimationFrame(raf);
+      };
+      const loop = (t: number) => {
+        raf = requestAnimationFrame(loop);
+        if (t - last < 1000 / fps) return;
+        last = t;
+        pointer.x += (pointer.tx - pointer.x) * 0.06;
+        pointer.y += (pointer.ty - pointer.y) * 0.06;
+        paint(t);
+      };
+      document.addEventListener('visibilitychange', () => (document.hidden ? stop() : start()));
+      reduced.addEventListener?.('change', () => stop());
+      start();
+      return { stop };
     };
 
-    const paint = (t: number) => {
-      if (!ctx) return;
-      ctx.clearRect(0, 0, W, H);
-      ctx.globalCompositeOperation = 'lighter';
-      for (const b of blobs) {
-        const x = (b.x + Math.sin(t * b.px) * 0.08) * W;
-        const y = (b.y + Math.cos(t * b.py) * 0.09) * H;
-        const r = b.r * Math.min(W, H) * (1 + Math.sin(t * b.ph) * 0.1);
-        const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-        g.addColorStop(0, `hsla(${b.h + Math.sin(t * b.ph) * 6}, 78%, 60%, ${b.a})`);
-        g.addColorStop(1, 'hsla(0, 0%, 0%, 0)');
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, W, H);
+    /* ------------------------------------------------------------------ */
+    /* 层 1：WebGL fbm 极光着色器（首选）                                    */
+    /* ------------------------------------------------------------------ */
+    const initGL = (): boolean => {
+      const canvas = root.querySelector<HTMLCanvasElement>('.aurora-gl');
+      const gl = canvas?.getContext('webgl', { antialias: false, alpha: false });
+      if (!canvas || !gl) return false;
+
+      const VERT = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
+      const FRAG = `
+precision highp float;
+uniform vec2 uRes;
+uniform float uTime;
+uniform vec2 uMouse;
+float hash(vec2 p){p=fract(p*vec2(234.34,435.345));p+=dot(p,p+34.23);return fract(p.x*p.y);}
+float noise(vec2 p){
+  vec2 i=floor(p),f=fract(p),u=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),u.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),u.x),u.y);
+}
+float fbm(vec2 p){
+  float v=0.,a=.55;
+  mat2 r=mat2(.8,-.6,.6,.8);
+  for(int i=0;i<5;i++){v+=a*noise(p);p=r*p*2.02+vec2(3.1,1.7);a*=.52;}
+  return v;
+}
+void main(){
+  vec2 uv=gl_FragCoord.xy/uRes;
+  vec2 asp=vec2(uRes.x/uRes.y,1.);
+  vec2 st=uv*asp;
+  float t=uTime*.05;
+  vec2 par=(uMouse/uRes-.5)*.4;
+
+  /* 帘状极光：fbm 域扭曲 + 横向条带 */
+  vec2 q=vec2(fbm(st*1.35+vec2(0.,-t)),fbm(st*1.35-vec2(t*.7,0.)));
+  float f=fbm(st*2.1+q*1.7+par*(1.2-uv.y));
+  float band=f*(.6+.55*sin(st.x*2.6+q.y*5.+t*2.));
+  float beams=pow(max(band,0.),3.2)*1.6;
+
+  /* 文案区避让（左侧中带）+ 边缘强调 */
+  float dText=length(st-vec2(.3,.48)*asp);
+  float textMask=smoothstep(.6,.12,dText);
+  float edge=smoothstep(.32,.95,length(uv-vec2(.5,.5)));
+  float energy=beams*mix(1.,.15,textMask)*mix(.4,1.3,edge);
+
+  /* 指针辉光：跟随鼠标的柔光（交互反馈） */
+  float dM=length(st-uMouse/uRes*asp);
+  float glow=exp(-dM*4.5)*.45*(1.-textMask*.6);
+
+  float hueMix=fbm(st*.85-t*.3);
+  vec3 plasma=mix(vec3(.486,.227,.929),vec3(.659,.333,.969),hueMix);
+  vec3 col=vec3(.039,.024,.078)+plasma*(energy*.34+glow*.6);
+  col*=1.-.22*smoothstep(.5,1.05,length(uv-.5));
+  gl_FragColor=vec4(col,1.);
+}`;
+
+      const compile = (type: number, src: string) => {
+        const s = gl.createShader(type)!;
+        gl.shaderSource(s, src);
+        gl.compileShader(s);
+        if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+          console.warn('[aurora] shader error:', gl.getShaderInfoLog(s));
+          return null;
+        }
+        return s;
+      };
+
+      const vs = compile(gl.VERTEX_SHADER, VERT);
+      const fs = compile(gl.FRAGMENT_SHADER, FRAG);
+      if (!vs || !fs) return false;
+      const prog = gl.createProgram()!;
+      gl.attachShader(prog, vs);
+      gl.attachShader(prog, fs);
+      gl.linkProgram(prog);
+      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return false;
+      gl.useProgram(prog);
+
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      const loc = gl.getAttribLocation(prog, 'p');
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+      const uRes = gl.getUniformLocation(prog, 'uRes');
+      const uTime = gl.getUniformLocation(prog, 'uTime');
+      const uMouse = gl.getUniformLocation(prog, 'uMouse');
+
+      // 半分辨率渲染：着色器本身柔和，CSS 放大无损观感，逐帧成本减半
+      const resize = () => {
+        canvas.width = Math.max(2, Math.ceil(canvas.clientWidth * 0.5));
+        canvas.height = Math.max(2, Math.ceil(canvas.clientHeight * 0.5));
+        gl.viewport(0, 0, canvas.width, canvas.height);
+      };
+      resize();
+
+      const paint = (t: number) => {
+        gl.uniform2f(uRes, canvas.width, canvas.height);
+        gl.uniform1f(uTime, t);
+        gl.uniform2f(uMouse, pointer.x * canvas.width, pointer.y * canvas.height);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+      };
+
+      let resizeTimer = 0;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(resize, 120);
+      });
+
+      root.dataset.variant = 'gl';
+      if (reduced.matches) {
+        paint(40000); // 静态帧：reduced-motion 终态
+        return true;
       }
+      makeLoop((t) => paint(t), 30);
+      return true;
     };
 
-    // 30fps 帧率上限：光斑漂移是慢速氛围，不需要满帧
-    const loop = (t: number) => {
-      raf = requestAnimationFrame(loop);
-      if (t - last < 33) return;
-      last = t;
-      paint(t);
-    };
+    /* ------------------------------------------------------------------ */
+    /* 层 2：Canvas 2D 光斑（WebGL 不可用时的降级，同样跟随鼠标）             */
+    /* ------------------------------------------------------------------ */
+    const init2D = (): boolean => {
+      const canvas = root.querySelector<HTMLCanvasElement>('.aurora-2d');
+      const ctx = canvas?.getContext('2d');
+      if (!canvas || !ctx) return false;
 
-    const start = () => {
-      if (running || reduced.matches) return;
-      running = true;
-      raf = requestAnimationFrame(loop);
-    };
+      // 光斑只用品牌紫两族色相，青色不进光场
+      const blobs = [
+        { x: 0.16, y: 0.12, r: 0.44, h: 268, a: 0.3, px: 0.00013, py: 0.00009, ph: 0.00004 },
+        { x: 0.68, y: 0.2, r: 0.4, h: 292, a: 0.26, px: 0.00011, py: 0.00012, ph: 0.00005 },
+        { x: 0.55, y: 0.88, r: 0.5, h: 256, a: 0.24, px: 0.00007, py: 0.00011, ph: 0.00003 },
+        { x: 0.9, y: 0.55, r: 0.3, h: 305, a: 0.18, px: 0.00014, py: 0.00008, ph: 0.00006 },
+      ];
 
-    const stop = () => {
-      running = false;
-      cancelAnimationFrame(raf);
-    };
+      const resize = () => {
+        canvas.width = Math.max(2, Math.ceil(canvas.clientWidth / 8));
+        canvas.height = Math.max(2, Math.ceil(canvas.clientHeight / 8));
+      };
+      resize();
 
-    resize();
-    paint(0); // 静态帧：reduced-motion 下的最终状态
-    if (!reduced.matches) start();
+      const paint = (t: number) => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.globalCompositeOperation = 'lighter';
+        blobs.forEach((b, i) => {
+          // 第一个光斑缓步追随指针，制造"光跟着走"的交互感
+          const drift = i === 0 ? { x: pointer.x * 0.25, y: pointer.y * 0.25 } : { x: 0, y: 0 };
+          const x = (b.x + Math.sin(t * b.px) * 0.08 + drift.x) * canvas.width;
+          const y = (b.y + Math.cos(t * b.py) * 0.09 + drift.y) * canvas.height;
+          const r = b.r * Math.min(canvas.width, canvas.height) * (1 + Math.sin(t * b.ph) * 0.1);
+          const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+          g.addColorStop(0, `hsla(${b.h + Math.sin(t * b.ph) * 6}, 78%, 60%, ${b.a})`);
+          g.addColorStop(1, 'hsla(0, 0%, 0%, 0)');
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        });
+      };
 
-    // 标签页隐藏即暂停，零后台开销
-    document.addEventListener('visibilitychange', () => (document.hidden ? stop() : start()));
+      let resizeTimer = 0;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(() => {
+          resize();
+          paint(performance.now());
+        }, 120);
+      });
 
-    let resizeTimer = 0;
-    window.addEventListener('resize', () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = window.setTimeout(() => {
-        resize();
-        paint(performance.now());
-      }, 120);
-    });
-
-    reduced.addEventListener?.('change', () => {
-      stop();
+      root.dataset.variant = '2d';
       paint(0);
-    });
+      if (!reduced.matches) makeLoop((t) => paint(t), 30);
+      return true;
+    };
+
+    /* ------------------------------------------------------------------ */
+    /* 选择变体                                                            */
+    /* ------------------------------------------------------------------ */
+    if (forced !== 'css') {
+      const ok =
+        (forced !== '2d' && initGL()) ||
+        init2D();
+      if (ok) {
+        // JS 光场接管后，CSS 层退出合成
+        (root.querySelector('.aurora-css') as HTMLElement).style.display = 'none';
+      }
+    }
   }
 </script>
