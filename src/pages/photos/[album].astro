@@ -9,6 +9,9 @@ export async function getStaticPaths() {
 }
 
 const { album } = Astro.props as { album: ReturnType<typeof getAlbum> };
+const albumIndex = albums.findIndex((a) => a.slug === album?.slug);
+const prevAlbum = albumIndex > 0 ? albums[albumIndex - 1] : albums[albums.length - 1];
+const nextAlbum = albumIndex < albums.length - 1 ? albums[albumIndex + 1] : albums[0];
 ---
 
 <BaseLayout title={`${album?.title ?? '相册'} - SlivenNoxLab 摄影`} description={album?.desc ?? `${album?.title} 相册（${album?.category}），共 ${album?.photos.length} 张照片。`}>
@@ -29,16 +32,23 @@ const { album } = Astro.props as { album: ReturnType<typeof getAlbum> };
         <div class="masonry">
           {album.photos.map((photo, i) => (
             <Reveal delay={Math.min(i * 30, 240)} class="m-item">
-              <figure class="m-item-inner">
-                <a href={photo.src.src} target="_blank" rel="noopener" aria-label={`查看原图 ${photo.filename}`}>
-                  <Image
-                    src={photo.src}
-                    alt={`${album.title} ${i + 1}`}
-                    width={880}
-                    loading={i < 4 ? 'eager' : 'lazy'}
-                    decoding="async"
-                  />
-                </a>
+              <figure
+                class="m-item-inner"
+                data-lightbox-item
+                data-index={i}
+                data-full={photo.src.src}
+              >
+                <Image
+                  src={photo.src}
+                  alt={`${album.title} ${i + 1}`}
+                  width={880}
+                  loading={i < 4 ? 'eager' : 'lazy'}
+                  decoding="async"
+                />
+                <figcaption class="m-caption">
+                  <span class="m-idx">{String(i + 1).padStart(2, '0')}</span>
+                  <span class="m-zoom-hint">放大查看</span>
+                </figcaption>
               </figure>
             </Reveal>
           ))}
@@ -55,7 +65,44 @@ const { album } = Astro.props as { album: ReturnType<typeof getAlbum> };
         </div>
       )
     }
+
+    {
+      album && (
+        <nav class="album-nav" aria-label="相册切换">
+          <a class="album-nav-link" href={`/photos/${prevAlbum.slug}/`}>
+            <span class="an-dir">←</span>
+            <span class="an-title">{prevAlbum.title}</span>
+          </a>
+          <span class="an-sep">{album.category}</span>
+          <a class="album-nav-link" href={`/photos/${nextAlbum.slug}/`}>
+            <span class="an-title">{nextAlbum.title}</span>
+            <span class="an-dir">→</span>
+          </a>
+        </nav>
+      )
+    }
   </main>
+
+  {/* ============ Lightbox 灯箱（自研零依赖） ============ */}
+  <div class="lightbox" data-lightbox hidden role="dialog" aria-modal="true" aria-label="照片查看器">
+    <div class="lb-backdrop" data-lb-close></div>
+    <figure class="lb-stage">
+      <img class="lb-img" data-lb-img src="" alt="" decoding="async" />
+      <figcaption class="lb-caption">
+        <span class="lb-name" data-lb-caption></span>
+        <span class="lb-count" data-lb-count></span>
+      </figcaption>
+    </figure>
+    <button class="lb-btn lb-close" data-lb-close type="button" aria-label="关闭">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4L12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5z" /></svg>
+    </button>
+    <button class="lb-btn lb-arrow lb-prev" data-lb-prev type="button" aria-label="上一张">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.6 5H18v14h-2.4zM5 5.5 14.5 12 5 18.5z" /></svg>
+    </button>
+    <button class="lb-btn lb-arrow lb-next" data-lb-next type="button" aria-label="下一张">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h2.4v14H6zM19 5.5 9.5 12 19 18.5z" /></svg>
+    </button>
+  </div>
 </BaseLayout>
 
 <style>
@@ -101,7 +148,7 @@ const { album } = Astro.props as { album: ReturnType<typeof getAlbum> };
     color: var(--color-text-tertiary);
   }
 
-  /* 瀑布流：CSS 多列 */
+  /* 瀑布流 */
   .masonry {
     columns: 3;
     column-gap: var(--space-4);
@@ -113,11 +160,13 @@ const { album } = Astro.props as { album: ReturnType<typeof getAlbum> };
   }
 
   .m-item-inner {
+    position: relative;
     margin: 0;
     border-radius: var(--radius-card);
     overflow: hidden;
     border: 1px solid var(--color-border);
     background: var(--color-bg-raised);
+    cursor: zoom-in;
   }
 
   .m-item-inner :global(img) {
@@ -128,37 +177,193 @@ const { album } = Astro.props as { album: ReturnType<typeof getAlbum> };
   }
 
   .m-item-inner:hover :global(img) {
-    transform: scale(1.01);
+    transform: scale(1.04);
   }
 
-  .album-empty {
-    padding: var(--space-10);
-    border: 1px dashed var(--color-border-strong);
-    border-radius: var(--radius-card);
-    text-align: center;
+  /* 悬停字幕：等宽编号 + 放大提示 */
+  .m-caption {
+    position: absolute;
+    inset: auto 0 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-6) var(--space-4) var(--space-3);
+    background: linear-gradient(to top, rgba(6, 3, 16, 0.75), transparent);
+    opacity: 0;
+    transition: opacity var(--dur-fast) var(--ease-out);
   }
 
-  .album-empty .path-code {
-    display: inline-block;
+  .m-item-inner:hover .m-caption {
+    opacity: 1;
+  }
+
+  .m-idx {
     font-family: var(--font-mono);
-    font-size: 0.9rem;
-    padding: 6px 14px;
-    border-radius: var(--radius-input);
-    background: rgba(168, 157, 220, 0.12);
-    color: var(--color-accent-soft);
+    font-size: 0.75rem;
+    color: rgba(237, 234, 247, 0.85);
   }
 
-  .empty-text {
+  .m-zoom-hint {
+    font-size: 0.75rem;
+    color: var(--color-interactive);
+  }
+
+  /* 相册间导航 */
+  .album-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-top: var(--space-12);
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .album-nav-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    text-decoration: none;
     color: var(--color-text-secondary);
+    transition: color var(--dur-fast) var(--ease-out);
   }
 
-  .album-empty :global(p) {
-    margin-bottom: var(--space-3);
+  .album-nav-link:hover {
+    color: var(--color-interactive);
+  }
+
+  .an-dir {
+    font-family: var(--font-mono);
+  }
+
+  .an-title {
+    font-weight: 500;
+  }
+
+  .an-sep {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-text-tertiary);
+  }
+
+  /* ============ Lightbox ============ */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 400;
+    display: grid;
+    place-items: center;
+  }
+
+  .lightbox[hidden] {
+    display: none;
+  }
+
+  .lb-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(6, 3, 16, 0.94);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+
+  .lb-stage {
+    position: relative;
+    z-index: 1;
+    margin: 0;
+    display: grid;
+    gap: var(--space-3);
+    max-width: min(92vw, 1500px);
+    animation: lb-in 0.35s var(--ease-out);
+  }
+
+  @keyframes lb-in {
+    from {
+      opacity: 0;
+      transform: scale(0.965);
+    }
+  }
+
+  .lb-img {
+    max-width: 92vw;
+    max-height: 80vh;
+    border-radius: var(--radius-card);
+    border: 1px solid var(--color-border-strong);
+    box-shadow: 0 40px 120px rgba(0, 0, 0, 0.7);
+    display: block;
+    margin-inline: auto;
+  }
+
+  .lb-caption {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-4);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--color-text-tertiary);
+  }
+
+  .lb-count {
+    color: var(--color-interactive);
+  }
+
+  .lb-btn {
+    position: absolute;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--color-border-strong);
+    background: rgba(19, 11, 34, 0.8);
+    color: var(--color-text);
+    cursor: pointer;
+    transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+  }
+
+  .lb-btn:hover {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: #fff;
+  }
+
+  .lb-btn svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+  }
+
+  .lb-close {
+    top: var(--space-5);
+    right: var(--space-5);
+  }
+
+  .lb-arrow {
+    top: 50%;
+    translate: 0 -50%;
+  }
+
+  .lb-prev {
+    left: var(--space-5);
+  }
+
+  .lb-next {
+    right: var(--space-5);
   }
 
   @media (max-width: 900px) {
     .masonry {
       columns: 2;
+    }
+
+    .lb-prev {
+      left: var(--space-3);
+    }
+
+    .lb-next {
+      right: var(--space-3);
     }
   }
 
@@ -168,3 +373,76 @@ const { album } = Astro.props as { album: ReturnType<typeof getAlbum> };
     }
   }
 </style>
+
+<script>
+  /* Lightbox：打开/关闭/翻张/键盘/触屏滑动，astro:page-load 生命周期 */
+  document.addEventListener('astro:page-load', () => {
+    const box = document.querySelector<HTMLElement>('[data-lightbox]');
+    const items = [...document.querySelectorAll<HTMLElement>('[data-lightbox-item]')];
+    if (!box || items.length === 0 || box.dataset.bound) return;
+    box.dataset.bound = '1';
+
+    const img = box.querySelector<HTMLImageElement>('[data-lb-img]');
+    const captionEl = box.querySelector<HTMLElement>('[data-lb-caption]');
+    const countEl = box.querySelector<HTMLElement>('[data-lb-count]');
+    let current = 0;
+    let lastFocus: HTMLElement | null = null;
+
+    const show = (i: number) => {
+      current = ((i % items.length) + items.length) % items.length;
+      const item = items[current];
+      const full = item.dataset.full;
+      const target = img!;
+      target.style.opacity = '0';
+      setTimeout(() => {
+        if (full) target.src = full;
+        target.alt = item.querySelector('img')?.alt ?? '';
+        if (captionEl) captionEl.textContent = item.dataset.full?.split('/').pop() ?? '';
+        if (countEl) countEl.textContent = `${String(current + 1).padStart(2, '0')} / ${String(items.length).padStart(2, '0')}`;
+        requestAnimationFrame(() => (target.style.opacity = '1'));
+      }, 160);
+      // 预加载相邻两张
+      [current + 1, current - 1].forEach((n) => {
+        const src = items[((n % items.length) + items.length) % items.length].dataset.full;
+        if (src) new Image().src = src;
+      });
+    };
+
+    const open = (i: number) => {
+      lastFocus = document.activeElement as HTMLElement;
+      box.hidden = false;
+      document.body.style.overflow = 'hidden';
+      show(i);
+    };
+
+    const close = () => {
+      box.hidden = true;
+      document.body.style.overflow = '';
+      lastFocus?.focus();
+    };
+
+    const step = (dir: number) => show(current + dir);
+
+    items.forEach((item) => {
+      item.addEventListener('click', () => open(Number(item.dataset.index)));
+    });
+    box.querySelectorAll('[data-lb-close]').forEach((el) => el.addEventListener('click', close));
+    box.querySelector('[data-lb-prev]')?.addEventListener('click', () => step(-1));
+    box.querySelector('[data-lb-next]')?.addEventListener('click', () => step(1));
+
+    document.addEventListener('keydown', (e) => {
+      if (box.hidden) return;
+      if (e.key === 'Escape') close();
+      if (e.key === 'ArrowLeft') step(-1);
+      if (e.key === 'ArrowRight') step(1);
+    });
+
+    // 触屏滑动翻张
+    let startX = 0;
+    box.addEventListener('pointerdown', (e) => (startX = e.clientX));
+    box.addEventListener('pointerup', (e) => {
+      const dx = e.clientX - startX;
+      if (Math.abs(dx) > 48) step(dx > 0 ? -1 : 1);
+    });
+  });
+</script>
