@@ -51,9 +51,9 @@
 <style>
   .deck {
     position: relative;
-    width: min(560px, 100%);
-    padding: var(--space-6) var(--space-6) var(--space-5);
-    border-radius: 24px;
+    width: min(460px, 100%);
+    padding: var(--space-5) var(--space-5) var(--space-4);
+    border-radius: 20px;
     background: rgba(19, 11, 34, 0.66);
     -webkit-backdrop-filter: blur(20px) saturate(1.3);
     backdrop-filter: blur(20px) saturate(1.3);
@@ -109,10 +109,10 @@
   /* ============ 碟片 + 环形频谱：固定方形舞台，画布/条形全部内含 ============ */
   .disc-zone {
     position: relative;
-    width: min(430px, 100%);
+    width: min(350px, 100%);
     aspect-ratio: 1;
     margin-inline: auto;
-    margin-block: var(--space-6);
+    margin-block: var(--space-5);
   }
 
   .ring-vis {
@@ -185,8 +185,9 @@
 
   .dl-meta {
     font-family: var(--font-mono);
-    font-size: 0.66rem;
+    font-size: 0.6rem;
     color: rgba(237, 234, 247, 0.62);
+    white-space: nowrap;
   }
 
   .deck-prompt {
