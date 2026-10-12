@@ -1,0 +1,461 @@
+---
+// 播放卡共享组件：主页 Hero 与工具台播放页共用同一实例样式与逻辑。
+// 绑定全局音频引擎 window.NoxAudio（跨页持久，播放不中断）。
+// ClientRouter 下脚本随导航重跑：用 cleanup 模式清理旧实例的 rAF。
+---
+
+<div class="deck" data-player>
+  <span class="deck-label deck-l">NOX SESSION</span>
+  <span class="deck-label deck-r">实时频谱</span>
+
+  <div class="deck-chip deck-chip-top">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" /></svg>
+    NOX 播放列表
+  </div>
+
+  <div class="disc-zone">
+    <canvas class="ring-vis" data-ring aria-hidden="true"></canvas>
+    <div class="disc" data-disc>
+      <div class="disc-rotor" aria-hidden="true"></div>
+      <div class="disc-label">
+        <span class="dl-title" data-title>未在播放</span>
+        <span class="dl-meta" data-artist-disc>从列表选一首</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="deck-prompt">来源：<span data-artist-src>程序合成 · 示例曲目</span></div>
+
+  <div class="deck-controls">
+    <button class="cbtn" data-act="prev" type="button" aria-label="上一首">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h2.4v14H6zM19 5.5 9.5 12 19 18.5z" /></svg>
+    </button>
+    <button class="cbtn cbtn-main" data-act="toggle" type="button" aria-label="播放 / 暂停">
+      <svg class="ic-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" /></svg>
+      <svg class="ic-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.4v14H7zM13.6 5H17v14h-3.4z" /></svg>
+    </button>
+    <button class="cbtn" data-act="next" type="button" aria-label="下一首">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.6 5H18v14h-2.4zM5 5.5 14.5 12 5 18.5z" /></svg>
+    </button>
+  </div>
+
+  <div class="deck-progress">
+    <input class="range" data-seek type="range" min="0" max="100" step="0.1" value="0" aria-label="播放进度" />
+    <div class="dp-times">
+      <span data-cur>00:00</span>
+      <span data-dur>00:00</span>
+    </div>
+  </div>
+</div>
+
+<style>
+  .deck {
+    position: relative;
+    width: min(560px, 100%);
+    padding: var(--space-6) var(--space-6) var(--space-5);
+    border-radius: 24px;
+    background: rgba(19, 11, 34, 0.66);
+    -webkit-backdrop-filter: blur(20px) saturate(1.3);
+    backdrop-filter: blur(20px) saturate(1.3);
+    border: 1px solid rgba(168, 157, 220, 0.16);
+    box-shadow:
+      var(--shadow-card),
+      inset 0 1px 0 rgba(237, 234, 247, 0.08);
+  }
+
+  .deck-label {
+    position: absolute;
+    top: var(--space-5);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    color: var(--color-text-tertiary);
+  }
+
+  .deck-l {
+    left: var(--space-6);
+  }
+
+  .deck-r {
+    right: var(--space-6);
+  }
+
+  .deck-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 6px 13px;
+    border-radius: var(--radius-pill);
+    background: rgba(10, 6, 20, 0.75);
+    border: 1px solid var(--color-border-strong);
+    color: var(--color-text-secondary);
+    font-size: 0.78rem;
+  }
+
+  .deck-chip svg {
+    width: 11px;
+    height: 11px;
+    fill: currentColor;
+  }
+
+  .deck-chip-top {
+    position: absolute;
+    top: var(--space-5);
+    left: 50%;
+    translate: -50% 0;
+    z-index: 2;
+  }
+
+  /* ============ 碟片 + 环形频谱：固定方形舞台，画布/条形全部内含 ============ */
+  .disc-zone {
+    position: relative;
+    width: min(430px, 100%);
+    aspect-ratio: 1;
+    margin-inline: auto;
+    margin-block: var(--space-6);
+  }
+
+  .ring-vis {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .disc {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 58%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(237, 234, 247, 0.06) 0 26%, transparent 27%),
+      repeating-radial-gradient(circle at 50% 50%, #150d26 0 2px, #0d0819 2px 4.5px);
+    border: 1px solid rgba(34, 211, 238, 0.18);
+    box-shadow:
+      inset 0 0 46px rgba(0, 0, 0, 0.85),
+      0 0 70px rgba(124, 58, 237, 0.3);
+  }
+
+  .disc-rotor {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: repeating-radial-gradient(circle at 50% 50%, transparent 0 3px, rgba(0, 0, 0, 0.35) 3px 4px);
+    animation: disc-spin 9s linear infinite;
+    animation-play-state: paused;
+  }
+
+  :global(.is-playing) .disc-rotor {
+    animation-play-state: running;
+  }
+
+  @keyframes disc-spin {
+    to {
+      rotate: 360deg;
+    }
+  }
+
+  .disc-label {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 2px;
+    justify-items: center;
+    width: 62%;
+    padding: var(--space-4) var(--space-3);
+    border-radius: 50%;
+    aspect-ratio: 1;
+    background: radial-gradient(circle at 38% 30%, rgba(124, 58, 237, 0.55), rgba(10, 6, 20, 0.9) 75%);
+    border: 1px solid rgba(168, 157, 220, 0.22);
+    text-align: center;
+  }
+
+  .dl-title {
+    font-weight: 600;
+    font-size: 0.98rem;
+    color: #fff;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .dl-meta {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    color: rgba(237, 234, 247, 0.62);
+  }
+
+  .deck-prompt {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--color-text-tertiary);
+    margin-bottom: var(--space-5);
+  }
+
+  .deck-prompt span {
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+  }
+
+  /* ============ 控制区 ============ */
+  .deck-controls {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+  }
+
+  .cbtn {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--color-border-strong);
+    background: rgba(10, 6, 20, 0.6);
+    color: var(--color-text);
+    cursor: pointer;
+    transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+  }
+
+  .cbtn:hover {
+    background: rgba(168, 157, 220, 0.12);
+    border-color: var(--color-accent-soft);
+  }
+
+  .cbtn svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+  }
+
+  .cbtn-main {
+    width: 50px;
+    height: 50px;
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: #fff;
+  }
+
+  .cbtn-main:hover {
+    background: var(--color-accent-soft);
+    border-color: var(--color-accent-soft);
+  }
+
+  .cbtn-main .ic-pause {
+    display: none;
+  }
+
+  :global(.is-playing) .cbtn-main .ic-play {
+    display: none;
+  }
+
+  :global(.is-playing) .cbtn-main .ic-pause {
+    display: block;
+  }
+
+  /* ============ 进度条 ============ */
+  .range {
+    width: 100%;
+    accent-color: var(--color-interactive);
+    height: 4px;
+  }
+
+  .dp-times {
+    display: flex;
+    justify-content: space-between;
+    margin-top: var(--space-1);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--color-text-tertiary);
+  }
+
+  .deck-progress {
+    margin-top: var(--space-4);
+  }
+</style>
+
+<script>
+  /* 播放卡逻辑：绑定全局引擎；ClientRouter 下随导航重跑，
+     cleanup 模式清理旧实例的 rAF 与监听 */
+  const cleanups: Array<() => void> = [];
+
+  const initDeck = () => {
+    cleanups.splice(0).forEach((fn) => fn());
+
+    const api = (window as unknown as Record<string, unknown>).NoxAudio as NoxAudio | undefined;
+    const deck = document.querySelector<HTMLElement>('[data-player]');
+    const ring = deck?.querySelector<HTMLCanvasElement>('[data-ring]');
+    const rctx = ring?.getContext('2d');
+    const titleEl = deck?.querySelector<HTMLElement>('[data-title]');
+    const artistEl = deck?.querySelector<HTMLElement>('[data-artist-src]');
+    const artistDiscEl = deck?.querySelector<HTMLElement>('[data-artist-disc]');
+    const curEl = deck?.querySelector<HTMLElement>('[data-cur]');
+    const durEl = deck?.querySelector<HTMLElement>('[data-dur]');
+    const seekEl = deck?.querySelector<HTMLInputElement>('[data-seek]');
+    const mainBtn = deck?.querySelector<HTMLButtonElement>('[data-act="toggle"]');
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+
+    const fmt = (t: number) => {
+      if (!isFinite(t)) return '00:00';
+      const m = Math.floor(t / 60);
+      const s = Math.floor(t % 60);
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    };
+
+    const syncPlaying = () => {
+      deck?.classList.toggle('is-playing', api?.playing ?? false);
+      mainBtn?.classList.toggle('is-playing', api?.playing ?? false);
+    };
+
+    const sync = () => {
+      if (!api) return;
+      const tr = api.index >= 0 ? api.tracks[api.index] : null;
+      if (titleEl) titleEl.textContent = tr?.title ?? '未在播放';
+      if (artistEl) artistEl.textContent = tr?.artist ?? '程序合成 · 示例曲目';
+      if (artistDiscEl) artistDiscEl.textContent = tr?.artist ?? '从列表选一首';
+      syncPlaying();
+      if (curEl) curEl.textContent = fmt(api.audio.currentTime);
+      if (durEl) durEl.textContent = fmt(api.audio.duration);
+      if (seekEl && !seekEl.matches(':active')) {
+        seekEl.value = api.audio.duration ? String((api.audio.currentTime / api.audio.duration) * 100) : '0';
+      }
+    };
+
+    drops_binding: {
+      const drops = document.querySelectorAll<HTMLButtonElement>('.drop');
+      if (drops.length === 0) break drops_binding; // 非播放页：无列表可绑
+      drops.forEach((d) =>
+        d.addEventListener('click', () => api?.load(Number(d.dataset.index))),
+      );
+      const onState = () => {
+        const tr = api && api.index >= 0 ? api.tracks[api.index] : null;
+        drops.forEach((d) => d.classList.toggle('is-current', tr ? Number(d.dataset.index) === api.index : false));
+      };
+      window.addEventListener('noxaudio:state', onState);
+      cleanups.push(() => window.removeEventListener('noxaudio:state', onState));
+    }
+
+    deck?.querySelector('[data-act="toggle"]')?.addEventListener('click', () => api?.toggle());
+    deck?.querySelector('[data-act="next"]')?.addEventListener('click', () => api?.next());
+    deck?.querySelector('[data-act="prev"]')?.addEventListener('click', () => api?.prev());
+    seekEl?.addEventListener('input', () => {
+      if (api && api.audio.duration) api.seekTo((Number(seekEl.value) / 100) * api.audio.duration);
+    });
+
+    window.addEventListener('noxaudio:state', sync);
+    sync();
+
+    /* 环形频谱：碟片外圈径向频谱条（镜像对称 + 高频补偿 + 峰值保持帽 + 缓慢旋转） */
+    if (ring && rctx) {
+      const resize = () => {
+        const w = Math.max(2, Math.round(ring.getBoundingClientRect().width || 430));
+        ring.width = w;
+        ring.height = w;
+      };
+      resize();
+      let resizeTimer = 0;
+      const onResize = () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(resize, 150);
+      };
+      window.addEventListener('resize', onResize);
+      cleanups.push(() => window.removeEventListener('resize', onResize));
+
+      const BARS = 64;
+      const HALF = BARS / 2;
+      const peaks = new Float32Array(BARS);
+
+      let last = 0;
+      let raf = 0;
+      const draw = (t: number) => {
+        raf = requestAnimationFrame(draw);
+        if (t - last < 33) return;
+        last = t;
+        const w = ring.width;
+        const c = w / 2;
+        const base = w * 0.29 - 2;
+        const maxReach = w * 0.47;
+        rctx.clearRect(0, 0, w, w);
+        const freq = api?.freq();
+
+        let bass = 0;
+        if (freq) {
+          for (let k = 1; k <= 6; k++) bass += freq[k];
+          bass = bass / 6 / 255;
+        }
+        const labelEl = deck?.querySelector<HTMLElement>('.disc-label');
+        if (labelEl) labelEl.style.transform = `scale(${1 + bass * 0.055})`;
+        const glowEl = document.querySelector<HTMLElement>('.glow');
+        if (glowEl) glowEl.style.opacity = String(0.55 + bass * 0.45);
+
+        const rot = t * 0.00006;
+
+        for (let i = 0; i < BARS; i++) {
+          const k = i < HALF ? i : BARS - 1 - i;
+          const bin = Math.floor(Math.pow(k / HALF, 1.5) * 90);
+          const gain = 0.5 + (k / HALF) * 1.1;
+          const v = freq
+            ? Math.min((freq[bin] / 255) * gain, 1)
+            : Math.min((0.05 + 0.03 * Math.sin(t / 700 + i * 0.5)) * gain, 1);
+          peaks[i] = Math.max(peaks[i] * 0.94 - 0.002, v);
+
+          const ang = (i / BARS) * Math.PI * 2 - Math.PI / 2 + rot;
+          const cos = Math.cos(ang);
+          const sin = Math.sin(ang);
+          const span = maxReach - base;
+          const len = Math.min(w * 0.012 + v * span * 0.92, span);
+          const plen = Math.min(w * 0.012 + peaks[i] * span * 0.95, span);
+          const x1 = c + cos * base;
+          const y1 = c + sin * base;
+
+          const e = Math.min(v * 1.4, 1);
+          rctx.strokeStyle = `rgba(${Math.round(96 + e * 62)}, ${Math.round(157 + e * 54)}, ${Math.round(247 - e * 9)}, ${0.5 + e * 0.5})`;
+          rctx.lineWidth = Math.max(2.5, w * 0.007);
+          rctx.lineCap = 'round';
+          rctx.beginPath();
+          rctx.moveTo(x1, y1);
+          rctx.lineTo(x1 + cos * len, y1 + sin * len);
+          rctx.stroke();
+
+          rctx.strokeStyle = `rgba(34, 211, 238, ${0.35 + peaks[i] * 0.6})`;
+          rctx.lineWidth = Math.max(2, w * 0.005);
+          rctx.beginPath();
+          rctx.moveTo(c + cos * (base + plen), c + sin * (base + plen));
+          rctx.lineTo(c + cos * (base + plen + w * 0.008), c + sin * (base + plen + w * 0.008));
+          rctx.stroke();
+        }
+      };
+      if (reduced.matches) {
+        const w = ring.width;
+        const c = w / 2;
+        rctx.strokeStyle = 'rgba(34, 211, 238, 0.25)';
+        rctx.lineWidth = 1.5;
+        rctx.beginPath();
+        rctx.arc(c, c, w * 0.3, 0, Math.PI * 2);
+        rctx.stroke();
+      } else {
+        raf = requestAnimationFrame(draw);
+        cleanups.push(() => cancelAnimationFrame(raf));
+      }
+    }
+  };
+
+  document.addEventListener('astro:page-load', initDeck);
+  initDeck();
+
+  /* 空格键：全局播放/暂停（输入框聚焦时除外） */
+  document.addEventListener('keydown', (e) => {
+    if (e.code !== 'Space') return;
+    const tag = (e.target as HTMLElement)?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    e.preventDefault();
+    ((window as unknown as Record<string, unknown>).NoxAudio as NoxAudio | undefined)?.toggle();
+  });
+</script>

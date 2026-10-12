@@ -2,8 +2,8 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Reveal from '../../components/ui/Reveal.astro';
 import SectionHead from '../../components/ui/SectionHead.astro';
+import PlayerDeck from '../../components/player/PlayerDeck.astro';
 import { musicTracks } from '../../lib/data/music';
-  import { formatTime } from '../../lib/contracts/audio';
 ---
 
 <BaseLayout title="音乐播放器 - SlivenNoxLab 工具台" description="Web Audio 环形频谱可视化音乐播放器。">
@@ -15,79 +15,28 @@ import { musicTracks } from '../../lib/data/music';
     <Reveal delay={60}>
       <div class="stage">
         <div class="glow" aria-hidden="true"></div>
-
-        <div class="deck" data-player>
-          <span class="deck-label deck-l">NOX SESSION</span>
-          <span class="deck-label deck-r">实时频谱</span>
-
-          <div class="deck-chip deck-chip-top">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" /></svg>
-            NOX 播放列表
-          </div>
-
-          <div class="disc-zone">
-            <canvas class="ring-vis" data-ring width="520" height="520" aria-hidden="true"></canvas>
-            <div class="disc" data-disc>
-              <div class="disc-rotor" aria-hidden="true"></div>
-              <div class="disc-label">
-                <span class="dl-title" data-title>未在播放</span>
-                <span class="dl-meta" data-artist>从列表选一首</span>
-              </div>
-            </div>
-            <button class="deck-chip chip-l" type="button" data-loop aria-label="切换循环模式">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 4l3.5 3.5L17 11V8.5H7v-2h10V4zM7 20l-3.5-3.5L7 13v2.5h10v2H7V20z" /></svg>
-              <span data-loop-label>列表循环</span>
-            </button>
-            <button class="deck-chip chip-r" type="button" data-vol-chip aria-label="音量">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h3l5-4v14l-5-4H4zM16.5 8.5a5 5 0 010 7l-1.4-1.4a3 3 0 000-4.2z" /></svg>
-              <span data-vol-label>80%</span>
-            </button>
-          </div>
-
-          <div class="deck-prompt">来源：<span data-artist>程序合成 · 示例曲目</span></div>
-
-          <div class="deck-controls">
-            <button class="cbtn" data-act="prev" type="button" aria-label="上一首">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h2.4v14H6zM19 5.5v13L9.5 12z" /></svg>
-            </button>
-            <button class="cbtn cbtn-main" data-act="toggle" type="button" aria-label="播放 / 暂停">
-              <svg class="ic-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" /></svg>
-              <svg class="ic-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.4v14H7zM13.6 5H17v14h-3.4z" /></svg>
-            </button>
-            <button class="cbtn" data-act="next" type="button" aria-label="下一首">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.6 5H18v14h-2.4zM5 5.5 14.5 12 5 18.5z" /></svg>
-            </button>
-          </div>
-
-          <div class="deck-progress">
-            <input class="range" data-seek type="range" min="0" max="100" step="0.1" value="0" aria-label="播放进度" />
-            <div class="dp-times">
-              <span data-cur>00:00</span>
-              <span data-dur>00:00</span>
-            </div>
-          </div>
-        </div>
+        <PlayerDeck />
       </div>
     </Reveal>
 
     <Reveal delay={120}>
       <div class="drops-head">曲目列表</div>
-      <div class="drops">
+      <ul class="plist" role="list">
         {
           musicTracks.map((t, i) => (
-            <button class={`drop ${i === 0 ? 'is-current' : ''}`} data-index={i} type="button">
-              <div class={`drop-cover dc-${i}`} aria-hidden="true">
-                <span class="drop-play">
-                  <svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" /></svg>
+            <li class="prow-wrap">
+              <button class="prow" data-index={i} type="button">
+                <span class="prow-idx">{String(i + 1).padStart(2, '0')}</span>
+                <span class="prow-name">{t.title}</span>
+                <span class="prow-artist">{t.artist}</span>
+                <span class="prow-eq" aria-hidden="true">
+                  <i /><i /><i />
                 </span>
-                <span class="drop-eq"><i /><i /><i /></span>
-              </div>
-              <span class="drop-title">{t.title}</span>
-              <span class="drop-artist">{t.artist}</span>
-            </button>
+              </button>
+            </li>
           ))
         }
-      </div>
+      </ul>
     </Reveal>
 
     <Reveal delay={180}>
@@ -101,196 +50,31 @@ import { musicTracks } from '../../lib/data/music';
 </BaseLayout>
 
 <script>
-  /* ClientRouter 下模块只执行一次；astro:page-load 时清理旧实例并对新页重新初始化。
-     音频引擎（window.NoxAudio）跨页持久，播放不中断。 */
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-  let cleanupFns: Array<() => void> = [];
-  let syncRef: (() => void) | null = null;
-
-
-  const initPage = () => {
-    cleanupFns.splice(0).forEach((fn) => fn());
-
-    const api = (window as unknown as Record<string, unknown>).NoxAudio as NoxAudio;
-    const player = document.querySelector<HTMLElement>('[data-player]');
-    const ring = player?.querySelector<HTMLCanvasElement>('[data-ring]');
-    const rctx = ring?.getContext('2d');
-    const titleEl = player?.querySelector<HTMLElement>('[data-title]');
-    const artistEl = player?.querySelector<HTMLElement>('[data-artist]');
-    const curEl = player?.querySelector<HTMLElement>('[data-cur]');
-    const durEl = player?.querySelector<HTMLElement>('[data-dur]');
-    const seekEl = player?.querySelector<HTMLInputElement>('[data-seek]');
-    const loopLabel = player?.querySelector<HTMLElement>('[data-loop-label]');
-    const volLabel = player?.querySelector<HTMLElement>('[data-vol-label]');
-    const mainBtn = player?.querySelector<HTMLButtonElement>('[data-act="toggle"]');
-    const glowEl = player?.querySelector<HTMLElement>('.glow');
-    const labelEl = player?.querySelector<HTMLElement>('.disc-label');
-    const drops = document.querySelectorAll<HTMLButtonElement>('.drop');
-
-    const syncPlaying = () => {
-      player?.classList.toggle('is-playing', api.playing);
-      mainBtn?.classList.toggle('is-playing', api.playing);
-      drops.forEach((d) => d.classList.toggle('is-current', Number(d.dataset.index) === api.index));
-    };
-
-    const sync = () => {
-      const i = api.index;
-      const tr = i >= 0 ? api.tracks[i] : null;
-      if (titleEl) titleEl.textContent = tr?.title ?? '未在播放';
-      if (artistEl) artistEl.textContent = tr?.artist ?? '程序合成 · 示例曲目';
-      syncPlaying();
-      if (curEl) curEl.textContent = formatTime(api.audio.currentTime);
-      if (durEl) durEl.textContent = formatTime(api.audio.duration);
-      if (seekEl && !seekEl.matches(':active')) {
-        seekEl.value = api.audio.duration ? String((api.audio.currentTime / api.audio.duration) * 100) : '0';
-      }
-      if (volLabel) volLabel.textContent = `${Math.round(api.audio.volume * 100)}%`;
-    };
-
-    syncRef = sync;
-
-    drops.forEach((d) =>
-      d.addEventListener('click', () => api.load(Number(d.dataset.index))),
-    );
-    player?.querySelector('[data-act="toggle"]')?.addEventListener('click', () => api.toggle());
-    player?.querySelector('[data-act="next"]')?.addEventListener('click', () => api.next());
-    player?.querySelector('[data-act="prev"]')?.addEventListener('click', () => api.prev());
-    player?.querySelector('[data-loop]')?.addEventListener('click', () => {
-      api.audio.loop = !api.audio.loop;
-      if (loopLabel) loopLabel.textContent = api.audio.loop ? '单曲循环' : '列表循环';
-    });
-    player?.querySelector('[data-vol-chip]')?.addEventListener('click', () => {
-      const levels = [0, 0.4, 0.8, 1];
-      const cur = levels.indexOf(api.audio.volume);
-      api.setVolume(levels[(cur + 1) % levels.length]);
-    });
-
-    /* 环形频谱：碟片外圈的径向频谱条（镜像对称 + 峰值保持帽 + 节拍呼吸） */
-    if (ring && rctx) {
-      const resize = () => {
-        const w = Math.max(2, Math.round(ring.getBoundingClientRect().width || 520));
-        ring.width = w;
-        ring.height = w;
-      };
-      resize();
-      let resizeTimer = 0;
-      const onResize = () => {
-        clearTimeout(resizeTimer);
-        resizeTimer = window.setTimeout(resize, 150);
-      };
-      window.addEventListener('resize', onResize);
-      cleanupFns.push(() => window.removeEventListener('resize', onResize));
-
-      const BARS = 64;
-      const HALF = BARS / 2;
-      const peaks = new Float32Array(BARS);
-
-      let last = 0;
-      let raf = 0;
-      const draw = (t: number) => {
-        raf = requestAnimationFrame(draw);
-        if (t - last < 33) return;
-        last = t;
-        const w = ring.width;
-        const c = w / 2;
-        const base = w * 0.29 - 2; // 起笔藏在碟片边缘
-        const maxReach = w * 0.47; // 硬上界：条形永不越出画布/卡片
-        rctx.clearRect(0, 0, w, w);
-        const freq = api.freq();
-
-        // 低音能量：驱动碟片呼吸 + 底光脉动
-        let bass = 0;
-        if (freq) {
-          for (let k = 1; k <= 6; k++) bass += freq[k];
-          bass = bass / 6 / 255;
-        }
-        if (labelEl) labelEl.style.transform = `scale(${1 + bass * 0.055})`;
-        if (glowEl) glowEl.style.opacity = String(0.55 + bass * 0.45);
-
-        // 缓慢旋转：整圈光条随时间转起来
-        const rot = t * 0.00006;
-
-        for (let i = 0; i < BARS; i++) {
-          // 镜像对称 + 高频补偿增益：低重合成曲也让整圈均匀起舞
-          const k = i < HALF ? i : BARS - 1 - i;
-          const bin = Math.floor(Math.pow(k / HALF, 1.5) * 90);
-          const gain = 0.5 + (k / HALF) * 1.1;
-          const v = freq
-            ? Math.min((freq[bin] / 255) * gain, 1)
-            : Math.min((0.05 + 0.03 * Math.sin(t / 700 + i * 0.5)) * gain, 1);
-          // 峰值保持：缓慢下落的亮点帽
-          peaks[i] = Math.max(peaks[i] * 0.94 - 0.002, v);
-
-          const ang = (i / BARS) * Math.PI * 2 - Math.PI / 2 + rot;
-          const cos = Math.cos(ang);
-          const sin = Math.sin(ang);
-          const span = maxReach - base;
-          const len = Math.min(w * 0.012 + v * span * 0.92, span);
-          const plen = Math.min(w * 0.012 + peaks[i] * span * 0.95, span);
-          const x1 = c + cos * base;
-          const y1 = c + sin * base;
-
-          // 频谱条：能量越高越亮（暗紫 → 亮青）
-          const e = Math.min(v * 1.4, 1);
-          rctx.strokeStyle = `rgba(${Math.round(96 + e * 62)}, ${Math.round(157 + e * 54)}, ${Math.round(247 - e * 9)}, ${0.5 + e * 0.5})`;
-          rctx.lineWidth = Math.max(2.5, w * 0.007);
-          rctx.lineCap = 'round';
-          rctx.beginPath();
-          rctx.moveTo(x1, y1);
-          rctx.lineTo(x1 + cos * len, y1 + sin * len);
-          rctx.stroke();
-
-          // 峰值帽：亮青小段
-          rctx.strokeStyle = `rgba(34, 211, 238, ${0.35 + peaks[i] * 0.6})`;
-          rctx.lineWidth = Math.max(2, w * 0.005);
-          rctx.beginPath();
-          rctx.moveTo(c + cos * (base + plen), c + sin * (base + plen));
-          rctx.lineTo(c + cos * (base + plen + w * 0.008), c + sin * (base + plen + w * 0.008));
-          rctx.stroke();
-        }
-      };
-      if (reduced.matches) {
-        // reduced-motion：画一圈静态细环
-        const w = ring.width;
-        const c = w / 2;
-        rctx.strokeStyle = 'rgba(34, 211, 238, 0.25)';
-        rctx.lineWidth = 1.5;
-        rctx.beginPath();
-        rctx.arc(c, c, w * 0.3, 0, Math.PI * 2);
-        rctx.stroke();
-      } else {
-        raf = requestAnimationFrame(draw);
-        cleanupFns.push(() => cancelAnimationFrame(raf));
-      }
-    }
-
-    sync();
-  };
-
-  window.addEventListener('noxaudio:state', () => syncRef?.());
-  initPage();
-
-  /* 空格键：全局播放/暂停（输入框聚焦时除外） */
-  document.addEventListener('keydown', (e) => {
-    if (e.code !== 'Space') return;
-    const tag = (e.target as HTMLElement)?.tagName;
-    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-    e.preventDefault();
-    ((window as unknown as Record<string, unknown>).NoxAudio as NoxAudio | undefined)?.toggle();
+  // 播放列表行：点击切歌；当前行高亮（ClientRouter 下随导航重跑）
+  const apiOf = () => (window as unknown as Record<string, unknown>).NoxAudio;
+  const rows = document.querySelectorAll<HTMLButtonElement>('.prow');
+  rows.forEach((row) => {
+    row.addEventListener('click', () => apiOf()?.load(Number(row.dataset.index)));
   });
+
+  const syncRows = () => {
+    const api = apiOf();
+    if (!api) return;
+    rows.forEach((row) => {
+      row.classList.toggle('is-current', Number(row.dataset.index) === api.index);
+      row.querySelector('.prow-eq')?.classList.toggle('is-playing', !api.audio.paused);
+    });
+  };
+  window.addEventListener('noxaudio:state', syncRows);
+  syncRows();
 </script>
 
-
 <style>
-  .music-page {
-    /* 播放器舞台的氛围底光（NovaPluse 手法：卡片坐在一大团辉光上） */
-  }
-
   .stage {
     position: relative;
     display: flex;
     justify-content: center;
-    padding-block: var(--space-8) var(--space-10);
+    padding-block: var(--space-8) var(--space-6);
   }
 
   .glow {
@@ -303,382 +87,95 @@ import { musicTracks } from '../../lib/data/music';
     pointer-events: none;
   }
 
-  /* ============ 玻璃播放卡 ============ */
-  .deck {
-    position: relative;
-    width: min(560px, 100%);
-    padding: var(--space-6) var(--space-6) var(--space-5);
-    border-radius: 24px;
-    background: rgba(19, 11, 34, 0.66);
-    -webkit-backdrop-filter: blur(20px) saturate(1.3);
-    backdrop-filter: blur(20px) saturate(1.3);
-    border: 1px solid rgba(168, 157, 220, 0.16);
-    box-shadow:
-      var(--shadow-card),
-      inset 0 1px 0 rgba(237, 234, 247, 0.08);
-  }
-
-  .deck-label {
-    position: absolute;
-    top: var(--space-5);
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    letter-spacing: 0.12em;
-    color: var(--color-text-tertiary);
-  }
-
-  .deck-l {
-    left: var(--space-6);
-  }
-
-  .deck-r {
-    right: var(--space-6);
-  }
-
-  .deck-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding: 6px 13px;
-    border-radius: var(--radius-pill);
-    background: rgba(10, 6, 20, 0.75);
-    border: 1px solid var(--color-border-strong);
-    color: var(--color-text-secondary);
-    font-size: 0.78rem;
-    cursor: pointer;
-    transition: border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
-  }
-
-  .deck-chip:hover {
-    color: var(--color-text);
-    border-color: var(--color-accent-soft);
-  }
-
-  .deck-chip svg {
-    width: 11px;
-    height: 11px;
-    fill: currentColor;
-  }
-
-  .deck-chip-top {
-    position: absolute;
-    top: var(--space-5);
-    left: 50%;
-    translate: -50% 0;
-    z-index: 2;
-  }
-
-  /* ============ 碟片 + 环形频谱：固定方形舞台，画布/条形全部内含 ============ */
-  .disc-zone {
-    position: relative;
-    width: min(430px, 100%);
-    aspect-ratio: 1;
-    margin-inline: auto;
-    margin-block: var(--space-6);
-  }
-
-  .ring-vis {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-  }
-
-  .disc {
-    position: absolute;
-    inset: 0;
-    margin: auto;
-    width: 58%;
-    aspect-ratio: 1;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    /* 黑胶沟槽 + 边缘辉光 */
-    background:
-      radial-gradient(circle at 50% 50%, rgba(237, 234, 247, 0.06) 0 26%, transparent 27%),
-      repeating-radial-gradient(circle at 50% 50%, #150d26 0 2px, #0d0819 2px 4.5px);
-    border: 1px solid rgba(34, 211, 238, 0.18);
-    box-shadow:
-      inset 0 0 46px rgba(0, 0, 0, 0.85),
-      0 0 70px rgba(124, 58, 237, 0.3);
-  }
-
-  .disc-rotor {
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    background: repeating-radial-gradient(circle at 50% 50%, transparent 0 3px, rgba(0, 0, 0, 0.35) 3px 4px);
-    animation: disc-spin 9s linear infinite;
-    animation-play-state: paused;
-  }
-
-  :global(.is-playing) .disc-rotor {
-    animation-play-state: running;
-  }
-
-  @keyframes disc-spin {
-    to {
-      rotate: 360deg;
-    }
-  }
-
-  .disc-label {
-    position: relative;
-    z-index: 1;
-    display: grid;
-    gap: 2px;
-    justify-items: center;
-    width: 62%;
-    padding: var(--space-4) var(--space-3);
-    border-radius: 50%;
-    aspect-ratio: 1;
-    background: radial-gradient(circle at 38% 30%, rgba(124, 58, 237, 0.55), rgba(10, 6, 20, 0.9) 75%);
-    border: 1px solid rgba(168, 157, 220, 0.22);
-    text-align: center;
-  }
-
-  .dl-title {
-    font-weight: 600;
-    font-size: 0.98rem;
-    color: #fff;
-    line-height: 1.25;
-    overflow-wrap: anywhere;
-  }
-
-  .dl-meta {
-    font-family: var(--font-mono);
-    font-size: 0.66rem;
-    color: rgba(237, 234, 247, 0.62);
-  }
-
-  /* 悬浮功能 chips：贴在碟片两肩 */
-  .chip-l {
-    position: absolute;
-    left: 4%;
-    top: 18%;
-  }
-
-  .chip-r {
-    position: absolute;
-    right: 4%;
-    top: 26%;
-  }
-
-  .deck-prompt {
-    text-align: center;
-    font-size: 0.85rem;
-    color: var(--color-text-tertiary);
-    margin-bottom: var(--space-5);
-  }
-
-  .deck-prompt span {
-    color: var(--color-text-secondary);
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-  }
-
-  /* ============ 控制区 ============ */
-  .deck-controls {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: var(--space-3);
-    margin-bottom: var(--space-5);
-  }
-
-  .cbtn {
-    display: grid;
-    place-items: center;
-    width: 42px;
-    height: 42px;
-    border-radius: var(--radius-pill);
-    border: 1px solid var(--color-border-strong);
-    background: rgba(10, 6, 20, 0.6);
-    color: var(--color-text);
-    cursor: pointer;
-    transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
-  }
-
-  .cbtn:hover {
-    background: rgba(168, 157, 220, 0.12);
-    border-color: var(--color-accent-soft);
-  }
-
-  .cbtn svg {
-    width: 18px;
-    height: 18px;
-    fill: currentColor;
-  }
-
-  .cbtn-main {
-    width: 50px;
-    height: 50px;
-    background: var(--color-accent);
-    border-color: var(--color-accent);
-    color: #fff;
-  }
-
-  .cbtn-main:hover {
-    background: var(--color-accent-soft);
-    border-color: var(--color-accent-soft);
-  }
-
-  .cbtn-main .ic-pause {
-    display: none;
-  }
-
-  :global(.is-playing) .cbtn-main .ic-play {
-    display: none;
-  }
-
-  :global(.is-playing) .cbtn-main .ic-pause {
-    display: block;
-  }
-
-  /* ============ 进度条 ============ */
-  .range {
-    width: 100%;
-    accent-color: var(--color-interactive);
-    height: 4px;
-  }
-
-  .dp-times {
-    display: flex;
-    justify-content: space-between;
-    margin-top: var(--space-1);
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    color: var(--color-text-tertiary);
-  }
-
-  /* ============ 曲目列表：Featured drops 式封面卡 ============ */
+  .plist-head,
   .drops-head {
-    margin: var(--space-12) 0 var(--space-4);
+    margin-top: var(--space-12);
+    margin-bottom: var(--space-4);
     font-size: 0.9rem;
     color: var(--color-text-tertiary);
   }
 
-  .drops {
+  .plist {
+    list-style: none;
+    padding: 0;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-4);
   }
 
-  .drop {
+  .prow {
     display: grid;
-    gap: var(--space-1);
-    padding: 0;
+    grid-template-columns: 3em 1fr auto auto;
+    align-items: center;
+    gap: var(--space-4);
+    width: 100%;
+    padding: var(--space-4) var(--space-2);
     background: none;
     border: none;
+    border-bottom: 1px solid var(--color-border);
+    color: inherit;
     text-align: left;
     cursor: pointer;
+    transition: background var(--dur-fast) var(--ease-out);
   }
 
-  .drop-cover {
-    position: relative;
-    aspect-ratio: 1;
-    border-radius: var(--radius-card);
-    overflow: hidden;
-    border: 1px solid var(--color-border);
-    transition: border-color var(--dur-fast) var(--ease-out), translate 0.5s var(--ease-out);
+  .prow:hover {
+    background: rgba(168, 157, 220, 0.05);
   }
 
-  .drop:hover .drop-cover {
-    border-color: var(--color-accent-soft);
-    translate: 0 -3px;
+  .prow-idx {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--color-text-tertiary);
   }
 
-  .dc-0 {
-    background: radial-gradient(circle at 32% 28%, rgba(124, 58, 237, 0.75), rgba(10, 6, 20, 0.95) 72%);
+  .prow-name {
+    font-weight: 550;
+    font-size: 0.98rem;
+    color: var(--color-text);
   }
 
-  .dc-1 {
-    background: radial-gradient(circle at 62% 34%, rgba(34, 211, 238, 0.4), rgba(10, 6, 20, 0.95) 74%);
+  .prow-artist {
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
   }
 
-  .dc-2 {
-    background: radial-gradient(circle at 44% 62%, rgba(168, 85, 247, 0.55), rgba(10, 6, 20, 0.95) 76%);
-  }
-
-  .drop-play {
-    position: absolute;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    opacity: 0;
-    transition: opacity var(--dur-fast) var(--ease-out);
-  }
-
-  .drop-play svg {
-    width: 34px;
-    height: 34px;
-    fill: #fff;
-    filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.6));
-  }
-
-  .drop:hover .drop-play {
-    opacity: 1;
-  }
-
-  .drop-eq {
-    position: absolute;
-    left: var(--space-3);
-    bottom: var(--space-3);
+  /* 当前播放行的均衡器动画 */
+  .prow-eq {
     display: none;
     align-items: flex-end;
     gap: 3px;
     height: 14px;
   }
 
-  .drop.is-current .drop-eq {
+  .prow.is-current .prow-eq {
     display: inline-flex;
   }
 
-  .drop-eq i {
+  .prow-eq i {
     width: 3px;
-    background: var(--color-interactive);
-    animation: deq 0.9s ease-in-out infinite;
-  }
-
-  .drop-eq i:nth-child(1) {
-    height: 60%;
-  }
-
-  .drop-eq i:nth-child(2) {
     height: 100%;
+    background: var(--color-interactive);
+  }
+
+  .prow-eq.is-playing i {
+    animation: eq 0.9s ease-in-out infinite;
+  }
+
+  .prow-eq.is-playing i:nth-child(2) {
     animation-delay: 0.2s;
   }
 
-  .drop-eq i:nth-child(3) {
-    height: 40%;
+  .prow-eq.is-playing i:nth-child(3) {
     animation-delay: 0.4s;
   }
 
-  @keyframes deq {
+  @keyframes eq {
     0%,
     100% {
-      transform: scaleY(0.35);
+      transform: scaleY(0.4);
     }
     50% {
       transform: scaleY(1);
     }
-  }
-
-  .drop-title {
-    margin-top: var(--space-2);
-    font-weight: 550;
-    font-size: 0.98rem;
-    color: var(--color-text);
-  }
-
-  .drop.is-current .drop-title {
-    color: var(--color-accent-soft);
-  }
-
-  .drop-artist {
-    font-size: 0.85rem;
-    color: var(--color-text-secondary);
   }
 
   .music-note {
@@ -698,22 +195,12 @@ import { musicTracks } from '../../lib/data/music';
   }
 
   @media (max-width: 640px) {
-    .drops {
-      grid-template-columns: 1fr;
+    .prow {
+      grid-template-columns: 2.5em 1fr auto;
     }
 
-    .deck-label {
+    .prow-artist {
       display: none;
-    }
-
-    .chip-l {
-      left: 2%;
-      top: 12%;
-    }
-
-    .chip-r {
-      right: 2%;
-      top: 20%;
     }
   }
 </style>
