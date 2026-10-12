@@ -74,43 +74,41 @@ import { albums, photoCategories } from '../../lib/data/photos';
 <script>
   // 分类筛选 + 手风琴交互（hover 展开；触屏点按展开）
   // ClientRouter 下随 astro:page-load 对新页重新绑定
-  document.addEventListener('astro:page-load', () => {
-    const tabs = document.querySelectorAll<HTMLButtonElement>('.photo-tab:not([data-bound])');
-    const strips = document.querySelectorAll<HTMLElement>('.strip');
-    const accordion = document.querySelector<HTMLElement>('[data-accordion]');
-    const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const tabs = document.querySelectorAll<HTMLButtonElement>('.photo-tab:not([data-bound])');
+  const strips = document.querySelectorAll<HTMLElement>('.strip');
+  const accordion = document.querySelector<HTMLElement>('[data-accordion]');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 
-    tabs.forEach((tab) => {
-      if (tab.dataset.bound) return;
-      tab.dataset.bound = '1';
-      tab.addEventListener('click', () => {
-        tabs.forEach((t) => {
-          const active = t === tab;
-          t.classList.toggle('is-active', active);
-          t.setAttribute('aria-selected', String(active));
-        });
-        const key = tab.dataset.filter;
-        let firstVisible = true;
-        strips.forEach((strip) => {
-          const show = key === 'all' || strip.dataset.category === key;
-          strip.classList.toggle('is-hidden', !show);
-          strip.classList.toggle('is-open', show && firstVisible);
-          if (show) firstVisible = false;
-        });
-        const visible = [...strips].filter((s) => !s.classList.contains('is-hidden')).length;
-        accordion?.classList.toggle('is-single', visible === 1);
+  tabs.forEach((tab) => {
+    if (tab.dataset.bound) return;
+    tab.dataset.bound = '1';
+    tab.addEventListener('click', () => {
+      tabs.forEach((t) => {
+        const active = t === tab;
+        t.classList.toggle('is-active', active);
+        t.setAttribute('aria-selected', String(active));
       });
+      const key = tab.dataset.filter;
+      let firstVisible = true;
+      strips.forEach((strip) => {
+        const show = key === 'all' || strip.dataset.category === key;
+        strip.classList.toggle('is-hidden', !show);
+        strip.classList.toggle('is-open', show && firstVisible);
+        if (show) firstVisible = false;
+      });
+      const visible = [...strips].filter((s) => !s.classList.contains('is-hidden')).length;
+      accordion?.classList.toggle('is-single', visible === 1);
     });
+  });
 
-    strips.forEach((strip) => {
-      if (strip.dataset.bound) return;
-      strip.dataset.bound = '1';
-      strip.addEventListener('click', (e) => {
-        if (!strip.classList.contains('is-open') && matchMedia('(pointer: coarse)').matches) {
-          e.preventDefault();
-          strips.forEach((s) => s.classList.toggle('is-open', s === strip));
-        }
-      });
+  strips.forEach((strip) => {
+    if (strip.dataset.bound) return;
+    strip.dataset.bound = '1';
+    strip.addEventListener('click', (e) => {
+      if (!strip.classList.contains('is-open') && matchMedia('(pointer: coarse)').matches) {
+        e.preventDefault();
+        strips.forEach((s) => s.classList.toggle('is-open', s === strip));
+      }
     });
   });
 </script>

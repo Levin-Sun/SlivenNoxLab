@@ -172,8 +172,6 @@ const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.s
 </style>
 
 <script>
-  /* ClientRouter 下 astro:page-load 触发（含首次加载），每次对新导航重新绑定 */
-  document.addEventListener('astro:page-load', () => {
     const header = document.querySelector<HTMLElement>('.site-nav');
     const sentinel = document.querySelector<HTMLElement>('.nav-sentinel');
     const toggle = document.querySelector<HTMLButtonElement>('.nav-toggle');
@@ -210,5 +208,4 @@ const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.s
         toggle.focus();
       }
     });
-  });
 </script>

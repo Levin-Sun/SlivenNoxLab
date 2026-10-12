@@ -3,7 +3,7 @@
 // 纪律：无 eyebrow（craft-floor 禁令）、主标题 ≤2 行、副标题 ≤20 词、
 //       双 CTA 首屏可见、无滚动提示、无装饰状态点。
 import AuroraField from './AuroraField.astro';
-import Console from './Console.astro';
+import HeroPlayer from './home/HeroPlayer.astro';
 ---
 
 <section class="hero">
@@ -23,7 +23,7 @@ import Console from './Console.astro';
     </div>
 
     <div class="hero-console">
-      <Console />
+      <HeroPlayer />
     </div>
   </div>
 </section>
@@ -88,7 +88,7 @@ import Console from './Console.astro';
     margin-top: var(--space-2);
   }
 
-  .hero-console {
+  .hero-player {
     min-width: 0;
   }
 
@@ -105,7 +105,7 @@ import Console from './Console.astro';
     animation-delay: 0.2s;
   }
 
-  .hero-console {
+  .hero-player {
     animation: hero-rise 0.7s var(--ease-out) 0.32s backwards;
   }
 
@@ -129,7 +129,7 @@ import Console from './Console.astro';
       padding-block: calc(68px + var(--space-12)) var(--space-14);
     }
 
-    .hero-console {
+    .hero-player {
       max-width: 480px;
     }
   }

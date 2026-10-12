@@ -1,0 +1,361 @@
+---
+// 主页右侧 NOX RADIO：迷你版音乐播放卡（替代阶段一的过时状态卡）。
+// 与全局音频引擎 window.NoxAudio 联动；主页点播放 → 全站边逛边听。
+// ClientRouter 下组件随主页重挂载，脚本用 astro:page-load 重新绑定。
+---
+
+<div class="hero-deck" data-hero-deck>
+  <div class="hd-head">
+    <span class="hd-label">NOX RADIO</span>
+    <a class="hd-expand content-link" href="/lab/music/">完整播放器 →</a>
+  </div>
+
+  <div class="hd-zone">
+    <canvas class="hd-ring" data-hd-ring width="380" height="380" aria-hidden="true"></canvas>
+    <div class="hd-disc" aria-hidden="true">
+      <div class="hd-rotor"></div>
+      <div class="hd-center">
+        <span class="hd-track" data-hd-title>NOX RADIO</span>
+        <span class="hd-meta" data-hd-artist>按下播放开始聆听</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="hd-bar-row">
+    <span class="hd-time" data-hd-cur>00:00</span>
+    <div class="hd-seek" data-hd-seek aria-label="播放进度"><div class="hd-seek-fill" data-hd-fill></div></div>
+    <span class="hd-time" data-hd-dur>00:00</span>
+  </div>
+
+  <div class="hd-controls">
+    <button class="hd-btn" data-hd-act="prev" type="button" aria-label="上一首">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h2.4v14H6zM19 5.5 9.5 12 19 18.5z" /></svg>
+    </button>
+    <button class="hd-btn hd-main" data-hd-act="toggle" type="button" aria-label="播放 / 暂停">
+      <svg class="ic-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" /></svg>
+      <svg class="ic-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.4v14H7zM13.6 5H17v14h-3.4z" /></svg>
+    </button>
+    <button class="hd-btn" data-hd-act="next" type="button" aria-label="下一首">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.6 5H18v14h-2.4zM5 5.5 14.5 12 5 18.5z" /></svg>
+    </button>
+  </div>
+</div>
+
+<style>
+  .hero-deck {
+    padding: var(--space-5) var(--space-5) var(--space-6);
+    border-radius: var(--radius-card);
+    background: rgba(19, 11, 34, 0.66);
+    -webkit-backdrop-filter: blur(20px) saturate(1.3);
+    backdrop-filter: blur(20px) saturate(1.3);
+    border: 1px solid rgba(168, 157, 220, 0.16);
+    box-shadow:
+      var(--shadow-card),
+      inset 0 1px 0 rgba(237, 234, 247, 0.08);
+  }
+
+  .hd-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+  }
+
+  .hd-label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    color: var(--color-text-tertiary);
+  }
+
+  .hd-expand {
+    font-size: 0.8rem;
+  }
+
+  /* 碟片 + 环形频谱 */
+  .hd-zone {
+    position: relative;
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+  }
+
+  .hd-ring {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .hd-disc {
+    position: relative;
+    width: 62%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(237, 234, 247, 0.06) 0 26%, transparent 27%),
+      repeating-radial-gradient(circle at 50% 50%, #150d26 0 2px, #0d0819 2px 4.5px);
+    border: 1px solid rgba(34, 211, 238, 0.18);
+    box-shadow:
+      inset 0 0 36px rgba(0, 0, 0, 0.85),
+      0 0 50px rgba(124, 58, 237, 0.28);
+  }
+
+  .hd-rotor {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: repeating-radial-gradient(circle at 50% 50%, transparent 0 3px, rgba(0, 0, 0, 0.35) 3px 4px);
+    animation: hd-spin 9s linear infinite;
+    animation-play-state: paused;
+  }
+
+  :global(.is-playing) .hd-rotor {
+    animation-play-state: running;
+  }
+
+  @keyframes hd-spin {
+    to {
+      rotate: 360deg;
+    }
+  }
+
+  .hd-center {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 2px;
+    justify-items: center;
+    width: 66%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    place-content: center;
+    background: radial-gradient(circle at 38% 30%, rgba(124, 58, 237, 0.55), rgba(10, 6, 20, 0.9) 75%);
+    border: 1px solid rgba(168, 157, 220, 0.22);
+    text-align: center;
+  }
+
+  .hd-track {
+    font-weight: 600;
+    font-size: 0.92rem;
+    color: #fff;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .hd-meta {
+    font-family: var(--font-mono);
+    font-size: 0.64rem;
+    color: rgba(237, 234, 247, 0.62);
+  }
+
+  /* 进度：点击可跳转的细条 */
+  .hd-bar-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-block: var(--space-4);
+  }
+
+  .hd-time {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--color-text-tertiary);
+    white-space: nowrap;
+  }
+
+  .hd-seek {
+    flex: 1;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+  }
+
+  .hd-seek-fill {
+    width: 0%;
+    height: 4px;
+    border-radius: var(--radius-pill);
+    background: var(--color-interactive);
+    transition: width 0.25s linear;
+  }
+
+  .hd-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .hd-btn {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--color-border-strong);
+    background: rgba(10, 6, 20, 0.6);
+    color: var(--color-text);
+    cursor: pointer;
+    transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+  }
+
+  .hd-btn:hover {
+    background: rgba(168, 157, 220, 0.12);
+    border-color: var(--color-accent-soft);
+  }
+
+  .hd-btn svg {
+    width: 17px;
+    height: 17px;
+    fill: currentColor;
+  }
+
+  .hd-main {
+    width: 48px;
+    height: 48px;
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: #fff;
+  }
+
+  .hd-main:hover {
+    background: var(--color-accent-soft);
+    border-color: var(--color-accent-soft);
+  }
+
+  .hd-main .ic-pause {
+    display: none;
+  }
+
+  :global(.is-playing) .hd-main .ic-play {
+    display: none;
+  }
+
+  :global(.is-playing) .hd-main .ic-pause {
+    display: block;
+  }
+</style>
+
+<script>
+  /* NOX RADIO：绑定全局音频引擎，主页可操控 + 环形频谱可视化 */
+  if (location.pathname === '/') {
+  (() => {
+  const deck = document.querySelector<HTMLElement>('[data-hero-deck]');
+  if (!deck || deck.dataset.bound) return;
+  deck.dataset.bound = '1';
+
+  const apiOf = () => (window as unknown as Record<string, unknown>).NoxAudio as NoxAudio | undefined;
+  const ring = deck.querySelector<HTMLCanvasElement>('[data-hd-ring]');
+  const rctx = ring?.getContext('2d');
+  const titleEl = deck.querySelector<HTMLElement>('[data-hd-title]');
+  const artistEl = deck.querySelector<HTMLElement>('[data-hd-artist]');
+  const curEl = deck.querySelector<HTMLElement>('[data-hd-cur]');
+  const durEl = deck.querySelector<HTMLElement>('[data-hd-dur]');
+  const fillEl = deck.querySelector<HTMLElement>('[data-hd-fill]');
+  const seekEl = deck.querySelector<HTMLElement>('[data-hd-seek]');
+  const mainBtn = deck.querySelector<HTMLButtonElement>('[data-hd-act="toggle"]');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+
+  const fmt = (t: number) => {
+    if (!isFinite(t)) return '00:00';
+    const m = Math.floor(t / 60);
+    const s = Math.floor(t % 60);
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
+  const sync = () => {
+    const api = apiOf();
+    if (!api || !deck.isConnected) return;
+    const i = api.index;
+    const tr = i >= 0 ? api.tracks[i] : null;
+    if (titleEl) titleEl.textContent = tr?.title ?? 'NOX RADIO';
+    if (artistEl) artistEl.textContent = tr?.artist ?? '按下播放开始聆听';
+    deck.classList.toggle('is-playing', api.playing);
+    mainBtn?.classList.toggle('is-playing', api.playing);
+    if (curEl) curEl.textContent = fmt(api.audio.currentTime);
+    if (durEl) durEl.textContent = fmt(api.audio.duration);
+    if (fillEl) {
+      fillEl.style.width = api.audio.duration
+        ? `${(api.audio.currentTime / api.audio.duration) * 100}%`
+        : '0%';
+    }
+  };
+
+  deck.querySelector('[data-hd-act="toggle"]')?.addEventListener('click', () => apiOf()?.toggle());
+  deck.querySelector('[data-hd-act="next"]')?.addEventListener('click', () => apiOf()?.next());
+  deck.querySelector('[data-hd-act="prev"]')?.addEventListener('click', () => apiOf()?.prev());
+  seekEl?.addEventListener('click', (e) => {
+    const api = apiOf();
+    if (!api || !api.audio.duration) return;
+    const r = seekEl.getBoundingClientRect();
+    api.seekTo(((e.clientX - r.left) / r.width) * api.audio.duration);
+  });
+
+  window.addEventListener('noxaudio:state', sync);
+  sync();
+
+  /* 环形频谱（迷你版）：40 条镜像对称 + 高频补偿 */
+  if (ring && rctx && !reduced.matches) {
+    const BARS = 40;
+    const HALF = BARS / 2;
+    const peaks = new Float32Array(BARS);
+    let last = 0;
+    let raf = 0;
+    const draw = (t: number) => {
+      raf = requestAnimationFrame(draw);
+      if (t - last < 40) return;
+      last = t;
+      if (!deck.isConnected) return; // 主页卸载后停止绘制
+      const w = ring.width;
+      const c = w / 2;
+      rctx.clearRect(0, 0, w, w);
+      const api = apiOf();
+      const freq = api?.freq();
+      const base = w * 0.31 - 3;
+      const maxReach = w * 0.47;
+
+      for (let i = 0; i < BARS; i++) {
+        const k = i < HALF ? i : BARS - 1 - i;
+        const bin = Math.floor(Math.pow(k / HALF, 1.5) * 90);
+        const gain = 0.55 + (k / HALF) * 1.0;
+        const v = freq ? Math.min((freq[bin] / 255) * gain, 1) : 0.05 + 0.025 * Math.sin(t / 800 + i * 0.5);
+        peaks[i] = Math.max(peaks[i] * 0.94 - 0.002, v);
+
+        const ang = (i / BARS) * Math.PI * 2 - Math.PI / 2;
+        const cos = Math.cos(ang);
+        const sin = Math.sin(ang);
+        const span = maxReach - base;
+        const len = Math.min(w * 0.01 + v * span * 0.9, span);
+        const plen = Math.min(w * 0.01 + peaks[i] * span * 0.95, span);
+        const x1 = c + cos * base;
+        const y1 = c + sin * base;
+
+        const e = Math.min(v * 1.4, 1);
+        rctx.strokeStyle = `rgba(${Math.round(96 + e * 62)}, ${Math.round(157 + e * 54)}, ${Math.round(247 - e * 9)}, ${0.5 + e * 0.5})`;
+        rctx.lineWidth = Math.max(2, w * 0.006);
+        rctx.lineCap = 'round';
+        rctx.beginPath();
+        rctx.moveTo(x1, y1);
+        rctx.lineTo(x1 + cos * len, y1 + sin * len);
+        rctx.stroke();
+
+        rctx.strokeStyle = `rgba(34, 211, 238, ${0.3 + peaks[i] * 0.55})`;
+        rctx.lineWidth = Math.max(1.5, w * 0.004);
+        rctx.beginPath();
+        rctx.moveTo(c + cos * (base + plen), c + sin * (base + plen));
+        rctx.lineTo(c + cos * (base + plen + w * 0.007), c + sin * (base + plen + w * 0.007));
+        rctx.stroke();
+      }
+    };
+    requestAnimationFrame(draw);
+  }
+
+  })();
+}
+
+</script>

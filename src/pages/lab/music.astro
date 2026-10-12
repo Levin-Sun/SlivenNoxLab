@@ -273,7 +273,6 @@ import { musicTracks } from '../../lib/data/music';
   };
 
   window.addEventListener('noxaudio:state', () => syncRef?.());
-  document.addEventListener('astro:page-load', initPage);
   initPage();
 
   /* 空格键：全局播放/暂停（输入框聚焦时除外） */

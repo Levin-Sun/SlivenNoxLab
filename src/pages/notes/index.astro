@@ -89,8 +89,7 @@ const fmt = (d: Date) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart
 </BaseLayout>
 
 <script>
-  // 分类筛选（纯客户端）；ClientRouter 下随 astro:page-load 对新页重新绑定
-  document.addEventListener('astro:page-load', () => {
+  // 分类筛选（纯客户端）
     const tabs = document.querySelectorAll<HTMLButtonElement>('.cat-tab');
     const rows = document.querySelectorAll<HTMLElement>('.note-row');
     tabs.forEach((tab) => {
@@ -109,7 +108,6 @@ const fmt = (d: Date) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart
         });
       });
     });
-  });
 </script>
 
 <style>

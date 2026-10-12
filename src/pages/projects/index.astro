@@ -85,21 +85,19 @@ const fmt = (d: Date) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart
 
 <script>
   // 分类筛选：纯客户端，data-category 匹配；ClientRouter 下随 astro:page-load 重新绑定
-  document.addEventListener('astro:page-load', () => {
-    const chips = document.querySelectorAll<HTMLButtonElement>('.filter-chip:not([data-bound])');
-    const cards = document.querySelectorAll<HTMLElement>('.work-card-wrap');
-    chips.forEach((chip) => {
-      chip.dataset.bound = '1';
-      chip.addEventListener('click', () => {
-        chips.forEach((c) => {
-          c.classList.toggle('is-active', c === chip);
-          c.setAttribute('aria-pressed', String(c === chip));
-        });
-        const key = chip.dataset.filter;
-        cards.forEach((card) => {
-          const show = key === 'all' || card.querySelector('.work-card')?.getAttribute('data-category') === key;
-          (card as HTMLElement).style.display = show ? '' : 'none';
-        });
+  const chips = document.querySelectorAll<HTMLButtonElement>('.filter-chip:not([data-bound])');
+  const cards = document.querySelectorAll<HTMLElement>('.work-card-wrap');
+  chips.forEach((chip) => {
+    chip.dataset.bound = '1';
+    chip.addEventListener('click', () => {
+      chips.forEach((c) => {
+        c.classList.toggle('is-active', c === chip);
+        c.setAttribute('aria-pressed', String(c === chip));
+      });
+      const key = chip.dataset.filter;
+      cards.forEach((card) => {
+        const show = key === 'all' || card.querySelector('.work-card')?.getAttribute('data-category') === key;
+        (card as HTMLElement).style.display = show ? '' : 'none';
       });
     });
   });

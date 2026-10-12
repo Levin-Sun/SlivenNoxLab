@@ -147,65 +147,84 @@ import { musicTracks } from '../../lib/data/music';
 
   createEngine();
 
-  /* ============ 迷你播放条 UI ============ */
-  const root = document.getElementById('mini-player');
-  const titleEl = document.getElementById('mp-title');
-  const toggleBtn = document.getElementById('mp-toggle');
-  const closeBtn = document.getElementById('mp-close');
-  const vis = root?.querySelector<HTMLCanvasElement>('.mp-vis');
-  const vctx = vis?.getContext('2d');
+  /* ============ 迷你播放条 UI ============
+     ClientRouter 会重执行页面脚本：用全局一次性守卫防止对持久元素重复绑定
+     （双绑定会让一次点击触发两次 toggle = 播放即暂停）。
+     二次执行时仅刷新同步。 */
+  const w2 = window as unknown as Record<string, unknown>;
+  const setupUI = () => {
+    const root = document.getElementById('mini-player');
+    const titleEl = document.getElementById('mp-title');
+    const toggleBtn = document.getElementById('mp-toggle');
+    const closeBtn = document.getElementById('mp-close');
+    const vis = root?.querySelector<HTMLCanvasElement>('.mp-vis');
+    const vctx = vis?.getContext('2d');
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 
-  const sync = () => {
-    const api = createEngine();
-    const active = api.index >= 0;
-    root?.toggleAttribute('hidden', !active || location.pathname.startsWith('/lab/music'));
-    if (toggleBtn) {
-      toggleBtn.classList.toggle('is-playing', api.playing);
+    const sync = () => {
+      const api = createEngine();
+      const active = api.index >= 0;
+      root?.toggleAttribute('hidden', !active || location.pathname.startsWith('/lab/music'));
+      if (toggleBtn) {
+        toggleBtn.classList.toggle('is-playing', api.playing);
+      }
+      if (titleEl && api.index >= 0) {
+        titleEl.textContent = api.tracks[api.index].title;
+      }
+    };
+
+    window.addEventListener('noxaudio:state', sync);
+    // 路由切换后重估显隐（播放页隐藏迷你条）并刷新状态
+    document.addEventListener('astro:page-load', sync);
+    sync();
+
+    if (toggleBtn && !toggleBtn.dataset.bound) {
+      toggleBtn.dataset.bound = '1';
+      toggleBtn.addEventListener('click', () => createEngine().toggle());
     }
-    if (titleEl && api.index >= 0) {
-      titleEl.textContent = api.tracks[api.index].title;
+    if (closeBtn && !closeBtn.dataset.bound) {
+      closeBtn.dataset.bound = '1';
+      closeBtn.addEventListener('click', () => {
+        const api = createEngine();
+        api.audio.pause();
+        root?.setAttribute('hidden', '');
+      });
+    }
+
+    // 迷你频谱：仅播放中绘制，节流到 ~20fps
+    if (root && vctx && !reduced.matches && !root.dataset.visBound) {
+      root.dataset.visBound = '1';
+      let last = 0;
+      const draw = (t: number) => {
+        requestAnimationFrame(draw);
+        if (t - last < 50) return;
+        last = t;
+        const api = createEngine();
+        if (api.index < 0 || !api.playing || !vctx) return;
+        // 顺手同步播放/暂停图标状态（跨页后防滞后）
+        toggleBtn?.classList.toggle('is-playing', api.playing);
+        const freq = api.freq();
+        if (!freq) return;
+        const w = vis.width;
+        const h = vis.height;
+        vctx.clearRect(0, 0, w, h);
+        const bars = 14;
+        const bw = w / bars;
+        for (let i = 0; i < bars; i++) {
+          const v = freq[Math.floor((i / bars) * 80)] / 255;
+          const bh = Math.max(2, v * h);
+          vctx.fillStyle = `rgba(168, 85, 247, ${0.45 + v * 0.5})`;
+          vctx.fillRect(i * bw + 1.5, h - bh, bw - 3, bh);
+        }
+      };
+      requestAnimationFrame(draw);
     }
   };
 
-  window.addEventListener('noxaudio:state', sync);
-  // 路由切换后重估显隐（播放页隐藏迷你条）并刷新状态
-  document.addEventListener('astro:page-load', sync);
-  sync();
-
-  toggleBtn?.addEventListener('click', () => createEngine().toggle());
-  closeBtn?.addEventListener('click', () => {
-    const api = createEngine();
-    api.audio.pause();
-    root?.setAttribute('hidden', '');
-  });
-
-  // 迷你频谱：仅播放中绘制，节流到 ~20fps
-  if (root && vctx && !reduced.matches) {
-    let last = 0;
-    const draw = (t: number) => {
-      requestAnimationFrame(draw);
-      if (t - last < 50) return;
-      last = t;
-      const api = createEngine();
-      if (api.index < 0 || !api.playing || !vctx) return;
-      // 顺手同步播放/暂停图标状态（跨页后防滞后）
-      toggleBtn?.classList.toggle('is-playing', api.playing);
-      const freq = api.freq();
-      if (!freq) return;
-      const w = vis.width;
-      const h = vis.height;
-      vctx.clearRect(0, 0, w, h);
-      const bars = 14;
-      const bw = w / bars;
-      for (let i = 0; i < bars; i++) {
-        const v = freq[Math.floor((i / bars) * 80)] / 255;
-        const bh = Math.max(2, v * h);
-        vctx.fillStyle = `rgba(168, 85, 247, ${0.45 + v * 0.5})`;
-        vctx.fillRect(i * bw + 1.5, h - bh, bw - 3, bh);
-      }
-    };
-    requestAnimationFrame(draw);
+  if (!w2.noxMiniUI) {
+    w2.noxMiniUI = true;
   }
+  setupUI();
 </script>
 
 <style>
