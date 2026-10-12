@@ -7,7 +7,10 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "test": "vitest run",
+    "verify": "npm run build && vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",
@@ -22,6 +25,8 @@
   "devDependencies": {
     "@astrojs/rss": "^4.0.19",
     "astro-pagefind": "^2.0.1",
-    "pagefind": "^1.5.2"
+    "happy-dom": "^21.0.0",
+    "pagefind": "^1.5.2",
+    "vitest": "^5.0.3"
   }
 }

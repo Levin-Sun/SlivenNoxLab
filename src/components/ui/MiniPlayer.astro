@@ -3,6 +3,7 @@
 // 引擎：单个 <audio> + Web Audio Analyser，播放页可视化与迷你条共用同一数据源。
 // 状态通过 window 事件 'noxaudio:state' 广播；交互按钮均为自绘几何 SVG。
 import { musicTracks } from '../../lib/data/music';
+  import { wrapIndex } from '../../lib/contracts/audio';
 ---
 
 <div class="mini-player" id="mini-player" hidden>
@@ -21,6 +22,7 @@ import { musicTracks } from '../../lib/data/music';
 
 <script>
   import { musicTracks } from '../../lib/data/music';
+  import { wrapIndex } from '../../lib/contracts/audio';
 
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -67,7 +69,7 @@ import { musicTracks } from '../../lib/data/music';
     };
 
     const load = (i: number, autoplay = true) => {
-      state.index = ((i % state.tracks.length) + state.tracks.length) % state.tracks.length;
+      state.index = wrapIndex(i, state.tracks.length);
       audio.src = state.tracks[state.index].src;
       if (autoplay) play();
       else emit();

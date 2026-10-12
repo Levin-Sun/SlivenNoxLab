@@ -3,6 +3,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import Reveal from '../../components/ui/Reveal.astro';
 import SectionHead from '../../components/ui/SectionHead.astro';
 import { musicTracks } from '../../lib/data/music';
+  import { formatTime } from '../../lib/contracts/audio';
 ---
 
 <BaseLayout title="音乐播放器 - SlivenNoxLab 工具台" description="Web Audio 环形频谱可视化音乐播放器。">
@@ -106,12 +107,6 @@ import { musicTracks } from '../../lib/data/music';
   let cleanupFns: Array<() => void> = [];
   let syncRef: (() => void) | null = null;
 
-  const fmt = (t: number) => {
-    if (!isFinite(t)) return '00:00';
-    const m = Math.floor(t / 60);
-    const s = Math.floor(t % 60);
-    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  };
 
   const initPage = () => {
     cleanupFns.splice(0).forEach((fn) => fn());
@@ -144,8 +139,8 @@ import { musicTracks } from '../../lib/data/music';
       if (titleEl) titleEl.textContent = tr?.title ?? '未在播放';
       if (artistEl) artistEl.textContent = tr?.artist ?? '程序合成 · 示例曲目';
       syncPlaying();
-      if (curEl) curEl.textContent = fmt(api.audio.currentTime);
-      if (durEl) durEl.textContent = fmt(api.audio.duration);
+      if (curEl) curEl.textContent = formatTime(api.audio.currentTime);
+      if (durEl) durEl.textContent = formatTime(api.audio.duration);
       if (seekEl && !seekEl.matches(':active')) {
         seekEl.value = api.audio.duration ? String((api.audio.currentTime / api.audio.duration) * 100) : '0';
       }

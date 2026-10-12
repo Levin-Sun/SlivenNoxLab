@@ -261,12 +261,6 @@
   const mainBtn = deck.querySelector<HTMLButtonElement>('[data-hd-act="toggle"]');
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 
-  const fmt = (t: number) => {
-    if (!isFinite(t)) return '00:00';
-    const m = Math.floor(t / 60);
-    const s = Math.floor(t % 60);
-    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  };
 
   const sync = () => {
     const api = apiOf();
@@ -277,8 +271,8 @@
     if (artistEl) artistEl.textContent = tr?.artist ?? '按下播放开始聆听';
     deck.classList.toggle('is-playing', api.playing);
     mainBtn?.classList.toggle('is-playing', api.playing);
-    if (curEl) curEl.textContent = fmt(api.audio.currentTime);
-    if (durEl) durEl.textContent = fmt(api.audio.duration);
+    if (curEl) curEl.textContent = formatTime(api.audio.currentTime);
+    if (durEl) durEl.textContent = formatTime(api.audio.duration);
     if (fillEl) {
       fillEl.style.width = api.audio.duration
         ? `${(api.audio.currentTime / api.audio.duration) * 100}%`

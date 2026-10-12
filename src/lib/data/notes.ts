@@ -1,6 +1,7 @@
 // 数据访问层：笔记。页面组件只允许从这里取数（PLAN.md 二.4 纪律）。
 import { getCollection, render, type CollectionEntry } from 'astro:content';
 import noteCategoriesJson from '../../data/note-categories.json';
+import { mergeNoteCategories } from './categories';
 
 export type Note = CollectionEntry<'notes'>;
 
@@ -35,19 +36,9 @@ export interface NoteCategory {
  */
 export async function listNoteCategories(): Promise<NoteCategory[]> {
   const notes = await listNotes();
-  const registered: NoteCategory[] = noteCategoriesJson.categories.map((c) => ({
-    key: c.key,
-    label: c.label,
-    order: c.order ?? 99,
-  }));
-  const known = new Set(registered.map((c) => c.key));
-  const extras: NoteCategory[] = [];
-  for (const note of notes) {
-    const cat = note.data.category?.trim();
-    if (cat && !known.has(cat)) {
-      known.add(cat);
-      extras.push({ key: cat, label: cat, order: 98 });
-    }
-  }
-  return [...registered, ...extras].sort((a, b) => a.order - b.order || a.label.localeCompare(b.label));
+  const seen = notes.map((n) => n.data.category?.trim() ?? '').filter(Boolean);
+  return mergeNoteCategories(
+    noteCategoriesJson.categories.map((c) => ({ ...c, order: c.order ?? 99 })),
+    seen,
+  );
 }
